@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tiến độ dự án Forge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js" integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ" crossorigin="anonymous"></script>
+<style>
+/* Bố cục: thanh trên (file + ngày) → thẻ sức khỏe dự án (vòng tiến độ + timeline) → chỉ số → năng lực & giai đoạn → milestone → cần chú ý → chi tiết. Thiết lập nằm trong ngăn kéo bên phải. */
+:root{
+  --bg:#f3f5fb; --surface:#ffffff; --ink:#1b1d34; --muted:#646985; --line:#eef0f7; --line-strong:#dde1ee;
+  --indigo:#5b4ee0; --indigo-soft:#f0eeff; --orange:#ff8f2e; --orange-soft:#fff4e8; --coral:#ff6f6f; --coral-soft:#ffeded; --green:#22b96b; --green-soft:#e6f8ee;
+  --accent:#5b4ee0; --accent-soft:#f0eeff;
+  --ok:#17a35c; --ok-soft:#e6f8ee; --warn:#e57d12; --warn-soft:#fff4e8; --bad:#e84a40; --bad-soft:#ffeded;
+  --s0:#e1e4f0; --s1:#d4ceff; --s2:#aea4fb; --s3:#8475f0; --s4:#5b4ee0; --s5:#22b96b;
+  --track:#f0f2f8; --shadow:0 8px 24px rgba(91,78,224,.06),0 1px 2px rgba(27,29,52,.03);
+  --font-display:"Be Vietnam Pro",system-ui,sans-serif;
+  --font-body:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:16px; color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#131c2b; --surface:#1c283b; --ink:#eef2f8; --muted:#a6b3c7; --line:#2d3b53; --line-strong:#3b4b66;
+  --accent:#7db4ff; --accent-soft:#213a5e;
+  --ok:#5cdca0; --ok-soft:#173d2d; --warn:#ffc65c; --warn-soft:#45351a; --bad:#ff8c78; --bad-soft:#4a2520;
+  --s0:#4a5872; --s1:#3c6fae; --s2:#4f8be0; --s3:#64a2f7; --s4:#7db4ff; --s5:#5cdca0;
+  --track:#26344b; --shadow:none; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 64px;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--font-display);font-weight:500;margin:0;text-wrap:balance;letter-spacing:-.02em}
+h2{font-size:17px}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.num{font-variant-numeric:tabular-nums}
+.hidden{display:none!important}
+button,.btn{font:inherit;font-weight:500;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+button:hover,.btn:hover{border-color:var(--accent);color:var(--accent)}
+button.primary,.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.primary:hover,.btn.primary:hover{filter:brightness(1.08);color:#fff}
+button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select,input[type=date],input[type=number],input[type=search]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line-strong);border-radius:8px;padding:6px 9px;width:100%}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:24px;box-shadow:var(--shadow)}
+.card-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.card-head p{margin:2px 0 0}
+
+/* thanh trên */
+.topbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:0 -20px;padding:12px 20px}
+.topbar-in{max-width:1200px;margin:0 auto;width:100%;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+.brand-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--s2),var(--accent));display:grid;place-items:center}
+.brand h1{font-size:17px}
+.brand .muted{font-size:12px;display:block;line-height:1.2}
+.chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:5px 6px 5px 12px;font-size:13px;max-width:100%}
+.chip .lbl{color:var(--muted)}
+.chip b{font-weight:600;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .btn,.chip button{padding:3px 10px;border-radius:999px;font-size:12.5px}
+.chip input[type=date]{border:none;padding:2px 4px;width:auto;background:transparent}
+
+/* vùng kéo thả */
+.drop{border:2px dashed var(--line-strong);border-radius:var(--r);padding:22px;display:flex;align-items:center;gap:18px;background:var(--surface);cursor:pointer;transition:border-color .15s,background .15s}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop.empty{min-height:260px;flex-direction:column;justify-content:center;text-align:center;gap:14px;margin-top:8px}
+.drop.empty .drop-ico{width:60px;height:60px}
+.drop-ico{width:44px;height:44px;border-radius:10px;background:var(--accent-soft);display:grid;place-items:center;flex:0 0 auto}
+.drop b{color:var(--accent)}
+.banner{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:10px 14px;font-size:13px}
+.banner.info{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.banner.warn{background:var(--warn-soft);border-left:4px solid var(--warn)}
+.banner ul{margin:2px 0 0;padding-left:18px}
+
+/* thẻ sức khỏe */
+.health{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:8px 28px;position:relative;overflow:hidden}
+.health::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--hc,var(--accent))}
+.health.ok{--hc:var(--ok);--hs:var(--ok-soft)} .health.warn{--hc:var(--warn);--hs:var(--warn-soft)} .health.bad{--hc:var(--bad);--hs:var(--bad-soft)}
+.health{background:linear-gradient(100deg,var(--hs,var(--accent-soft)) 0%,var(--surface) 62%)}
+.verdict{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:500;font-size:13px;padding:4px 12px 4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+.verdict::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.verdict.ok{background:var(--ok-soft);color:var(--ok)} .verdict.warn{background:var(--warn-soft);color:var(--warn)} .verdict.bad{background:var(--bad-soft);color:var(--bad)}
+.health h2{font-size:26px;letter-spacing:-.03em;margin:12px 0 6px}
+.lead{font-size:16px;line-height:1.6;max-width:66ch;margin:0}
+.lead b{font-weight:600}
+.lead .bad{color:var(--bad)} .lead .ok{color:var(--ok)} .lead .warn{color:var(--warn)}
+.ring-wrap{grid-row:1 / span 2;grid-column:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.ring-legend{display:flex;gap:14px;font-size:12px;color:var(--muted)}
+.ring-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.timeline{grid-column:1;margin-top:6px;position:relative}
+.timeline svg{display:block;width:100%;overflow:visible}
+
+/* chỉ số */
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
+.kpi{display:flex;flex-direction:column;gap:2px;padding:16px 18px;border-top:3px solid var(--kc,var(--line))}
+.kpi.ok{--kc:var(--ok)} .kpi.warn{--kc:var(--warn)} .kpi.bad{--kc:var(--bad)} .kpi.info{--kc:var(--accent)}
+.kpi .k-lbl{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;align-items:center}
+.kpi .k-val{font-family:var(--font-display);letter-spacing:-.03em;font-size:32px;font-weight:500;line-height:1.15;font-variant-numeric:tabular-nums;margin-top:4px}
+.kpi .k-val small{font-size:15px;color:var(--muted);font-weight:400}
+.kpi .k-note{font-size:13px;color:var(--muted)}
+.tag{display:inline-block;font-size:13px;line-height:1.5;font-weight:600;padding:1px 8px;border-radius:999px;background:var(--track);color:var(--muted);white-space:nowrap}
+.tag.ok{background:var(--ok-soft);color:var(--ok)} .tag.warn{background:var(--warn-soft);color:var(--warn)} .tag.bad{background:var(--bad-soft);color:var(--bad)} .tag.info{background:var(--accent-soft);color:var(--accent)}
+.ok-t{color:var(--ok)} .warn-t{color:var(--warn)} .bad-t{color:var(--bad)}
+
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+.chart{position:relative}
+.chart svg{display:block;width:100%}
+.chart text,.timeline text{fill:var(--muted);font-size:13px;font-family:var(--font-body)}
+.chart text.v,.timeline text.v{fill:var(--ink);font-variant-numeric:tabular-nums;font-weight:500}
+.tip{position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--line-strong);box-shadow:0 6px 20px rgba(0,0,0,.14);border-radius:8px;padding:7px 10px;font-size:12.5px;white-space:nowrap;z-index:5}
+.tip b{font-weight:600}
+
+/* năng lực */
+.cap-inputs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.cap-inputs label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.cap-inputs input{width:130px}
+.cap-msg{border-radius:10px;padding:12px 14px;font-size:14px;margin-bottom:14px;background:var(--accent-soft);border-left:4px solid var(--accent)}
+.cap-msg.ok{background:var(--ok-soft);border-color:var(--ok)} .cap-msg.bad{background:var(--bad-soft);border-color:var(--bad)}
+.cap-msg b{font-weight:600}
+.cap-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.cap-stats div{border-left:3px solid var(--line);padding-left:10px}
+.cap-stats .v{font-family:var(--font-display);letter-spacing:-.02em;font-size:21px;font-weight:500;font-variant-numeric:tabular-nums}
+.cap-stats .l{font-size:13px;color:var(--muted)}
+
+/* pipeline giai đoạn */
+.pipe{display:flex;height:34px;border-radius:8px;overflow:hidden;gap:2px;margin:4px 0 14px}
+.pipe div{min-width:3px;position:relative}
+.stages{display:flex;flex-direction:column;gap:2px}
+.stage-row{display:grid;grid-template-columns:12px minmax(0,1fr) 44px 66px 54px;gap:10px;align-items:center;padding:6px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.stage-row:last-child{border-bottom:none}
+.stage-row .sw{width:12px;height:12px;border-radius:3px}
+.stage-row .r{text-align:right;font-variant-numeric:tabular-nums}
+.stage-head{color:var(--muted);font-size:12px;border-bottom:1px solid var(--line-strong)}
+
+/* bảng */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:13px;white-space:nowrap}
+#allTable th{cursor:pointer;user-select:none}
+#allTable th:hover{color:var(--accent)}
+td.n,th.n{text-align:right;white-space:nowrap}
+tbody tr:hover{background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+.stage-chip{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:12.5px}
+.stage-chip i{width:9px;height:9px;border-radius:50%}
+.mini{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.mini .bar{width:64px;height:6px;border-radius:3px;background:var(--track);overflow:hidden}
+.mini .bar span{display:block;height:100%}
+.tid{font-weight:600;white-space:nowrap}
+.sum{max-width:420px}
+.notes{display:flex;flex-wrap:wrap;gap:4px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.toolbar input[type=search]{width:220px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+
+/* ngăn kéo thiết lập */
+.scrim{position:fixed;inset:0;background:rgba(10,16,26,.35);z-index:40}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);background:var(--surface);border-left:1px solid var(--line);z-index:41;display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.15)}
+.drawer-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.drawer-body{overflow-y:auto;padding:16px 20px 30px;display:flex;flex-direction:column;gap:22px}
+.drawer h3{font-size:14px;margin-bottom:4px}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:12px;color:var(--muted)}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.stat-grid .field input{width:100%}
+.msdates td{padding:4px 6px 4px 0;border:none}
+@media (prefers-reduced-motion: no-preference){ .drawer{animation:slide .18s ease-out} @keyframes slide{from{transform:translateX(30px);opacity:.6}} }
+
+@media (max-width:860px){
+  .topbar{position:static}
+  .health{grid-template-columns:1fr}
+  .ring-wrap{grid-row:auto;grid-column:1;flex-direction:row;justify-content:flex-start}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid2{grid-template-columns:1fr}
+}
+@media (max-width:480px){
+  .wrap{padding:0 14px 40px} .topbar{margin:0 -14px;padding:10px 14px}
+  .cap-stats{grid-template-columns:1fr 1fr}
+  .kpi .k-val{font-size:24px}
+  .stage-row{grid-template-columns:14px minmax(0,1fr) 46px 64px}
+  .stage-row .hide-s{display:none}
+  .drop{flex-direction:column;text-align:center}
+}
+.foot{font-size:12.5px;color:var(--muted)}
+.foot ul{margin:8px 0 0;padding-left:18px;line-height:1.75}
+
+/* lớp chuyển động: một đường cong, nhấn nút có bước lên/xuống, ô nhập có viền nhấn và vòng mờ 3px */
+:root{--ease:cubic-bezier(.2,.8,.2,1);--ease-enter:cubic-bezier(.22,1,.36,1);--m-in:150ms;--m-out:120ms;--m-press:90ms}
+button,.btn{transition:transform var(--m-out) var(--ease),background-color var(--m-out) var(--ease),border-color var(--m-out) var(--ease),color var(--m-out) var(--ease)}
+select,input[type=date],input[type=number],input[type=search]{transition:border-color 140ms var(--ease),box-shadow 140ms var(--ease)}
+select:focus,input[type=date]:focus,input[type=number]:focus,input[type=search]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+@media (hover:hover) and (pointer:fine){
+  button:hover,.btn:hover{transform:translateY(-1px);transition-duration:var(--m-in);background-color:color-mix(in srgb,var(--surface) 86%,var(--accent))}
+  button.primary:hover,.btn.primary:hover{background-color:color-mix(in srgb,var(--accent) 86%,var(--ink))}
+  button:active,.btn:active{transform:translateY(1px) scale(.985);transition-duration:var(--m-press)}
+  .drop{transition:border-color var(--m-out) var(--ease),background-color var(--m-out) var(--ease),transform var(--m-out) var(--ease)}
+  .drop:hover{transform:translateY(-2px);transition-duration:var(--m-in)}
+  tbody tr{transition:background-color var(--m-out) var(--ease)}
+}
+@media (prefers-reduced-motion: no-preference){
+  .enter{animation:rise 560ms var(--ease-enter) both}
+  .enter-2{animation-delay:60ms}.enter-3{animation-delay:120ms}.enter-4{animation-delay:180ms}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}}
+  .ring-arc{transition:stroke-dasharray 900ms var(--ease-enter)}
+}
+@media (max-width:640px){
+  .wrap{gap:12px}
+  .kpis,.grid2{gap:12px}
+  button,.btn,select,input[type=date],input[type=number],input[type=search]{min-height:44px}
+  .chip .btn,.chip button{min-height:36px}
+  .card{padding:18px}
+}
+
+/* bộ lọc, donut, phân trang, chân trang, bản in */
+.filterbar{padding:14px 20px}
+.filters{display:flex;gap:12px 18px;align-items:flex-end;flex-wrap:wrap}
+.fgroup{display:flex;flex-direction:column;gap:4px;min-width:180px}
+.fgroup label{font-size:13px;color:var(--muted)}
+.fgroup select{min-width:180px}
+.fgroup.active select{border-color:var(--accent);background:var(--accent-soft)}
+.stage-grid{display:grid;grid-template-columns:156px minmax(0,1fr);gap:18px;align-items:center}
+.donut{position:relative;height:156px}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center b{font-family:var(--font-display);font-size:21px;font-weight:500;letter-spacing:-.02em}
+.donut-center span{font-size:13px;color:var(--muted)}
+.stage-row{cursor:pointer;border-radius:6px}
+.stage-row.sel{background:var(--accent-soft)}
+.stage-row.dim{opacity:.45}
+.stage-head{cursor:default}
+.pager{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:12px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+.pager .toolbar button{padding:5px 12px}
+.dash-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:4px 2px 0;border-top:1px solid var(--line);padding-top:14px}
+@media (max-width:640px){ .stage-grid{grid-template-columns:1fr} .donut{height:170px} .fgroup,.fgroup select{min-width:0;width:100%} .filters{flex-direction:column;align-items:stretch} }
+@media print{
+  html,body{background:#fff}
+  .topbar,.filterbar,#openSettings,.drawer,.scrim,#copy,.toolbar input,.pager .toolbar,.drop,.cap-inputs{display:none!important}
+  .wrap{max-width:none;padding:0}
+  .card{box-shadow:none;break-inside:avoid;border-color:#d0d7e2}
+  .health{background:#fff}
+  .enter{animation:none!important}
+}
+.stage-row > span:nth-child(2){white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip-sel{border:none;background:transparent;padding:2px 4px;width:auto;max-width:240px;font-weight:600}
+.chip.active-f{border-color:var(--accent);background:var(--accent-soft)}
+
+/* phong cách mới: thẻ trắng bo 16px, bóng mềm, biểu tượng tròn màu */
+h1,h2,h3{font-weight:600}
+.card{border-color:var(--line);padding:22px 24px}
+.topbar{background:color-mix(in srgb,#fff 92%,transparent);border-bottom-color:var(--line)}
+.brand-mark{background:var(--orange)!important;border-radius:10px;box-shadow:0 6px 14px rgba(255,143,46,.3)}
+.chip{border-color:var(--line-strong);background:#fff}
+.kpi{border-top:none!important;padding:18px 20px;gap:4px}
+.kpi-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.kpi-ico{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:0 0 auto}
+.kpi-ico svg{width:20px;height:20px}
+.kpi-ico.indigo{background:var(--indigo)} .kpi-ico.coral{background:var(--coral)} .kpi-ico.green{background:var(--green)} .kpi-ico.orange{background:var(--orange)}
+.kpi .k-lbl{flex:1}
+.kpi .k-val{font-family:var(--font-body)!important;font-weight:600!important;letter-spacing:-.02em}
+.health{background:linear-gradient(100deg,var(--hs,var(--indigo-soft)) 0%,#fff 58%)!important}
+.verdict{font-family:var(--font-body)}
+th{background:#fafbff;font-weight:500}
+th:first-child{border-radius:10px 0 0 10px} th:last-child{border-radius:0 10px 10px 0}
+.cap-msg{border-left-width:0!important;border-radius:12px}
+.cap-msg:not(.ok):not(.bad){background:var(--orange-soft)}
+.drop{background:#fafbff}
+.drop:hover,.drop.over{border-color:var(--orange);background:var(--orange-soft)}
+.drop-ico{background:var(--orange)!important;border-radius:50%!important;box-shadow:0 8px 18px rgba(255,143,46,.3)}
+.drop-ico svg path{stroke:#fff}
+.drop b{color:var(--orange)}
+.banner.warn{border-left:none;border-radius:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="topbar-in">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M2 14h3V8H2zm5.5 0h3V4h-3zM13 14h3V10h-3z" fill="#fff"/></svg></div>
+        <div><h1>Tiến độ dự án</h1><span class="muted" id="projName">Forge Ticket</span></div>
+      </div>
+      <span class="chip"><span class="lbl">File ticket</span><b id="fileChip">Chưa chọn</b><label class="btn" for="file">Chọn file</label></span>
+      <span class="chip"><span class="lbl">Ngày lễ</span><b id="holChip">Chưa có</b><label class="btn" for="holfile">Tải</label></span>
+      <span class="chip hidden" id="fMsWrap" style="padding-right:6px"><label class="lbl" for="fMs">Milestone</label><select id="fMs" class="chip-sel"></select></span>
+      <span class="chip" style="padding-right:10px"><label class="lbl" for="asof">Ngày đánh giá</label><input type="date" id="asof"></span>
+      <button id="openSettings" aria-haspopup="dialog"><svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm6.3 3.3-.9-.5a5.6 5.6 0 0 0 0-.6l.9-.5a.6.6 0 0 0 .2-.8l-1-1.7a.6.6 0 0 0-.8-.2l-.9.5-.5-.3V3a.6.6 0 0 0-.6-.6H8.7a.6.6 0 0 0-.6.6v1l-.5.3-.9-.5a.6.6 0 0 0-.8.2l-1 1.7a.6.6 0 0 0 .2.8l.9.5v.6l-.9.5a.6.6 0 0 0-.2.8l1 1.7c.2.3.5.4.8.2l.9-.5.5.3v1c0 .3.3.6.6.6h1.9c.3 0 .6-.3.6-.6v-1l.5-.3.9.5c.3.2.6.1.8-.2l1-1.7a.6.6 0 0 0-.2-.8Z" transform="translate(-1 0)"/></svg>Thiết lập</button>
+      <input type="file" id="file" accept=".xlsx,.xls,.csv" hidden>
+      <input type="file" id="holfile" accept=".xlsx,.xls,.csv" hidden>
+    </div>
+  </div>
+
+  <label class="drop empty" id="drop" for="file">
+    <div class="drop-ico" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 15V4m0 0-4 4m4-4 4 4M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div><div style="font-size:16px"><b>Chọn file Excel</b> hoặc kéo thả file export Forge Ticket vào đây</div><div class="muted small" id="fileinfo">Hỗ trợ .xlsx, .xls, .csv. File chỉ được đọc trong trình duyệt, không gửi đi đâu. File ngày lễ (hr.holidays.public) chỉ cần tải một lần ở nút “Ngày lễ”, công cụ sẽ lưu lại cho các lần sau.</div></div>
+  </label>
+
+  <div class="banner warn hidden" id="warnings"></div>
+
+  <div id="app" class="hidden" style="display:flex;flex-direction:column;gap:16px">
+    <section class="card health" id="health">
+      <div>
+        <span class="verdict" id="verdict">—</span>
+        <h2 id="headline">—</h2>
+        <p class="lead" id="lead"></p>
+        <p class="muted small" id="leadsub" style="margin:6px 0 0"></p>
+      </div>
+      <div class="ring-wrap">
+        <div id="ring"></div>
+        <div class="ring-legend"><span><i style="background:var(--accent)"></i>Thực tế</span><span><i style="background:var(--orange);border-radius:50%"></i>Kế hoạch</span></div>
+      </div>
+      <div class="timeline" id="timeline"></div>
+    </section>
+
+    <section class="kpis" id="kpis"></section>
+
+    <div class="grid2">
+      <section class="card" id="capCard">
+        <div class="card-head"><div><h2>Năng lực team đến deadline</h2><p class="muted small">Workload còn lại quy ra giờ thực tế theo hiệu suất (CPI) hiện tại.</p></div></div>
+        <div class="cap-inputs">
+          <label for="people">Số người làm dự án<input type="number" id="people" min="0" step="0.5" placeholder="vd 2"></label>
+          <label for="hpp">Giờ / người / ngày<input type="number" id="hpp" value="8" min="0.5" step="0.5"></label>
+        </div>
+        <div class="cap-msg" id="capMsg"></div>
+        <div class="cap-stats" id="capStats"></div>
+        <div class="chart" id="capChart"></div>
+      </section>
+      <section class="card">
+        <div class="card-head"><div><h2>Ticket theo giai đoạn</h2><p class="muted small">Tỷ trọng giờ workload ở từng giai đoạn. Bấm một giai đoạn để lọc các bảng bên dưới.</p></div></div>
+        <div class="stage-grid">
+          <div class="donut"><canvas id="stageDonut" role="img" aria-label="Tỷ trọng workload theo giai đoạn"></canvas><div class="donut-center"><b id="donutTotal">—</b><span>giờ workload</span></div></div>
+          <div class="stages" id="stages"></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card" id="msCard">
+      <div class="card-head"><div><h2>Tiến độ từng milestone</h2><p class="muted small">Thanh màu là thực tế, vạch đứng là mức kế hoạch tại ngày đánh giá.</p></div></div>
+      <div class="chart" id="msChart"></div>
+    </section>
+
+    <section class="card filterbar" id="filterbar" aria-label="Lọc danh sách ticket">
+      <h2 style="margin-bottom:10px">Lọc danh sách ticket</h2>
+      <div class="filters">
+        <div class="fgroup"><label for="fStage">Giai đoạn</label><select id="fStage"></select></div>
+        <div class="fgroup" id="fPersonWrap"><label for="fPerson">Người làm</label><select id="fPerson"></select></div>
+        <button id="fClear" class="hidden">Xóa lọc</button>
+      </div>
+      <p class="muted small" id="fNote" style="margin:8px 0 0"></p>
+    </section>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Cần chú ý theo support ticket <span class="tag" id="attCount">0</span></h2><p class="muted small">Budget là workload cam kết với khách trên support ticket, so với tổng giờ của mọi Forge ticket thuộc nó. Đỏ: vượt budget khi chưa xong. Vàng: cần kiểm tra. Xanh: thông tin cách tính.</p></div>
+        <div class="toolbar"><button id="copy">Copy tóm tắt</button><span class="small ok-t" id="toast" aria-live="polite"></span></div>
+      </div>
+      <div class="tw"><table><thead><tr><th>Support</th><th>Forge ticket</th><th>Giai đoạn</th><th class="n">Budget</th><th class="n">Đã dùng</th><th>Vấn đề</th></tr></thead><tbody id="attBody"></tbody></table></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><div><h2>Giờ đã dùng so với budget</h2><p class="muted small">Mỗi dòng một support ticket (số trong ngoặc là số Forge ticket dùng chung), sắp theo giờ đã dùng.</p></div>
+        <div class="legend" style="margin:0"><span><i style="background:var(--track);outline:1px solid var(--line-strong)"></i>Budget</span><span><i style="background:var(--orange)"></i>Đã dùng</span><span><i style="background:var(--bad)"></i>Vượt khi chưa Closed</span></div></div>
+      <div class="chart" id="hoursChart"></div>
+    </section>
+
+    <section class="card" id="byPersonCard">
+      <div class="card-head"><div><h2>Theo người thực hiện</h2></div></div>
+      <div class="tw"><table><thead><tr><th>Người làm</th><th class="n">Ticket</th><th class="n">Workload (h)</th><th class="n">Đã dùng (h)</th><th class="n">Tiến độ</th><th class="n">CPI</th></tr></thead><tbody id="personBody"></tbody></table></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><div><h2>Toàn bộ ticket</h2><p class="muted small">Bấm tiêu đề cột để sắp xếp.</p></div>
+        <div class="toolbar"><label for="search" class="hidden">Tìm ticket</label><input type="search" id="search" placeholder="Tìm mã, nội dung, status…"></div></div>
+      <div class="tw"><table id="allTable"><thead><tr>
+        <th data-k="ticket">Ticket</th><th data-k="sup" class="supc">Support</th><th data-k="summary">Nội dung</th><th data-k="milestone" class="msc">Milestone</th><th data-k="assignee" class="asg">Người làm</th><th data-k="status">Giai đoạn</th>
+        <th class="n" data-k="pct">Tiến độ</th><th class="n" data-k="wl">Phần budget (h)</th><th class="n" data-k="ts">Đã dùng (h)</th><th class="n" data-k="ev">Earned (h)</th>
+      </tr></thead><tbody id="allBody"></tbody></table></div>
+      <div class="pager" id="pager"></div>
+    </section>
+
+    <details class="card foot">
+      <summary style="cursor:pointer;font-weight:600;color:var(--ink)">Cách tính các chỉ số</summary>
+      <ul>
+        <li>% tiến độ theo status: Assigned 0%, Code completed 70%, Ready to Deploy / QA 80%, Closed 100% (chỉnh được ở Thiết lập).</li>
+        <li>Ticket WIP: tiến độ = giờ dev đã dùng ÷ 75% workload, tối đa 70%. Ví dụ workload 10h, dev đã dùng 3h → 3 ÷ 7,5 = 40%.</li>
+        <li>Earned = Workload × % tiến độ. Tiến độ thực tế = tổng Earned / tổng Workload.</li>
+        <li>Ngày làm việc: thứ 2 đến thứ 6, trừ các ngày trong file ngày lễ.</li>
+        <li>Kế hoạch = số ngày làm việc đã qua / tổng số ngày làm việc của milestone, tại ngày đánh giá. Toàn dự án lấy bình quân theo workload.</li>
+        <li>SPI = thực tế / kế hoạch: từ 0,95 là đúng tiến độ, 0,85–0,95 có rủi ro, dưới 0,85 là chậm.</li>
+        <li>CPI = Earned / giờ đã dùng. Dưới 1 nghĩa là giờ đã dùng nhiều hơn giá trị tạo ra.</li>
+        <li>Giờ còn cần = (Workload − Earned) ÷ CPI. Năng lực team = số người × giờ/người/ngày × số ngày làm việc còn lại.</li>
+        <li>Dự báo hoàn thành: giữ nguyên tốc độ hiện tại, tính trên ngày làm việc.</li>
+        <li>Workload lấy từ support ticket. Nếu nhiều Forge ticket chung một support ticket, workload chỉ tính một lần và chia theo Dev Estimate (hoặc chia đều).</li>
+        <li>Ticket không có milestone và dòng tổng nhóm của file export không được tính.</li>
+      </ul>
+    </details>
+    <footer class="dash-foot" id="foot"></footer>
+  </div>
+</div>
+
+<div class="scrim hidden" id="scrim"></div>
+<aside class="drawer hidden" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+  <div class="drawer-head"><h2 id="drawerTitle">Thiết lập tính toán</h2><button id="closeSettings" aria-label="Đóng thiết lập">Đóng</button></div>
+  <div class="drawer-body">
+    <div>
+      <h3>Workload</h3>
+      <div class="fgrid">
+        <div class="field"><label for="unit">Đơn vị</label><select id="unit"><option value="day">Ngày công</option><option value="hour">Giờ</option></select></div>
+        <div class="field"><label for="hpd">Giờ / ngày công</label><input type="number" id="hpd" value="8" min="1" step="0.5"></div>
+      </div>
+      <div class="field" style="margin-top:10px"><label for="alloc">Nhiều Forge ticket chung một support ticket</label>
+        <select id="alloc"><option value="est">Chia workload theo Dev Estimate</option><option value="equal">Chia đều cho các ticket</option></select></div>
+      <p class="muted small" style="margin:6px 0 0">Workload nằm ở support ticket nên chỉ được tính một lần, rồi chia cho các Forge ticket liên quan.</p>
+    </div>
+    <div>
+      <h3>Tiến độ ticket WIP</h3>
+      <p class="muted small" style="margin:0 0 8px">Tiến độ = giờ dev đã dùng ÷ (hệ số × workload), không vượt mức tối đa đặt cho WIP ở phần % theo status.</p>
+      <div class="fgrid">
+        <div class="field"><label for="wipf">Hệ số workload (%)</label><input type="number" id="wipf" value="75" min="5" max="200" step="5"></div>
+      </div>
+    </div>
+    <div>
+      <h3>Ngày nghỉ lễ</h3>
+      <p class="muted small" style="margin:0 0 8px" id="holinfo">Chưa tải file.</p>
+      <div class="toolbar"><label class="btn" for="holfile">Chọn file ngày lễ</label><button id="holclear" class="hidden">Bỏ file</button></div>
+      <details id="holdetails" class="hidden" style="margin-top:8px"><summary class="small muted" style="cursor:pointer">Xem danh sách</summary>
+        <div class="tw"><table><thead><tr><th>Ngày</th><th>Thứ</th><th>Tên</th></tr></thead><tbody id="holbody"></tbody></table></div>
+      </details>
+    </div>
+    <div>
+      <h3>% tiến độ theo status</h3>
+      <p class="muted small" style="margin:0 0 8px">Để trống nghĩa là loại ticket ở status đó khỏi phép tính.</p>
+      <div class="stat-grid" id="statusmap"></div>
+    </div>
+    <div id="msdatesWrap" class="hidden">
+      <h3>Ngày milestone</h3>
+      <p class="muted small" style="margin:0 0 8px">File không có ngày cho các milestone này. Nhập để tính kế hoạch.</p>
+      <table class="msdates"><tbody id="msdates"></tbody></table>
+    </div>
+    <div>
+      <h3>Cột dữ liệu</h3>
+      <p class="muted small" style="margin:0 0 8px">Công cụ tự nhận diện. Chỉnh lại nếu sai.</p>
+      <div class="fgrid" id="colmap"></div>
+    </div>
+  </div>
+</aside>
+
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const cleanHeader = (h) => String(h ?? '').split('\n')[0].replace(/\s+/g, ' ').trim();
+const fmt1 = (x) => (x == null || isNaN(x) ? '—' : x.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
+const fmtH = (x) => (x == null || isNaN(x) ? '—' : x.toLocaleString('vi-VN', { maximumFractionDigits: 2 }));
+const fmt2 = (x) => (x == null || isNaN(x) ? '—' : x.toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+const pct = (x) => (x == null || isNaN(x) ? '—' : (x * 100).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%');
+const DAY = 864e5;
+const isoOf = (d) => d.toISOString().slice(0, 10);
+const utcDay = (s) => (s ? new Date(s + 'T00:00:00Z') : null);
+const fmtDate = (s) => (s ? s.slice(8, 10) + '/' + s.slice(5, 7) + '/' + s.slice(0, 4) : '—');
+
+// exact: tên field kỹ thuật trong file export Forge (ưu tiên khớp tuyệt đối trước)
+const COLS = {
+  ticket: { label: 'Mã ticket', exact: ['name', 'ticket id'], kw: ['ticket id', 'ma ticket', 'key'], exclude: ['support'] },
+  summary: { label: 'Nội dung', exact: ['summary'], kw: ['summary', 'title', 'tieu de', 'subject'] },
+  milestone: { label: 'Milestone', exact: ['milestone_id', 'milestone'], kw: ['milestone', 'giai doan', 'sprint', 'phase'], exclude: ['date', 'start', 'end', 'ngay'] },
+  status: { label: 'Status', exact: ['state', 'status'], kw: ['status', 'trang thai', 'stage', 'state'], exclude: ['date', 'update'] },
+  workload: { label: 'Workload', exact: ['tms_support_ticket_id/workload', 'support ticket/workload'], kw: ['workload', 'khoi luong', 'uoc tinh'] },
+  support: { label: 'Support ticket (workload dùng chung)', exact: ['tms_support_ticket_id/name', 'tms_support_ticket_id', 'support ticket'], kw: ['support ticket'], exclude: ['workload'] },
+  devest: { label: 'Dev Estimate (chia workload)', exact: ['development_time', 'dev estimate (h)'], kw: ['dev estimate', 'development time'] },
+  devspent: { label: 'Giờ dev đã dùng (cho WIP)', exact: ['time_spent_dev', 'time spent dev'], kw: ['time spent dev', 'dev time spent', 'dev spent', 'spent dev', 'time spent (dev)', 'gio dev'] },
+  timespend: { label: 'Time spent', exact: ['time_spent', 'time spent'], kw: ['time spent', 'timespend', 'time spend', 'spent', 'effort', 'actual'] },
+  assignee: { label: 'Người làm', kw: ['assignee', 'assigned to', 'nguoi thuc hien', 'developer', 'owner', 'pic', 'user'] },
+  ms_start: { label: 'Ngày bắt đầu milestone', exact: ['milestone_id/date_start', 'milestone/date start'], kw: ['milestone date start', 'milestone start', 'date start'] },
+  ms_end: { label: 'Ngày kết thúc milestone', exact: ['milestone_id/date_end', 'milestone/date end'], kw: ['milestone date end', 'milestone end', 'date end', 'deadline'] },
+  wip_date: { label: 'Ngày bắt đầu WIP', exact: ['wip_start', 'wip start'], kw: ['wip start', 'wip start date', 'last stage update', 'stage date', 'date last stage', 'wip date', 'wip since'] },
+};
+const ORDER = ['ms_start', 'ms_end', 'wip_date', 'workload', 'support', 'devest', 'ticket', 'summary', 'milestone', 'status', 'devspent', 'timespend', 'assignee'];
+// WIP: giá trị ở đây là mức trần; tiến độ thật = giờ dev đã dùng / (hệ số × workload)
+const DEFAULT_STATUS = [['closed', 1], ['done', 1], ['assigned to qa', 0.8], ['qa', 0.8], ['ready to deploy', 0.8], ['read to deploy', 0.8], ['code complete', 0.7], ['wip', 0.7], ['in progress', 0.7]];
+const isWipStatus = (s) => /\bwip\b|in progress/.test(norm(s));
+const EXCLUDED = /cancel|reject|duplicate|won t fix|wont fix/;
+
+let S = null; // state
+
+function defaultStatusPct(s) {
+  const n = norm(s);
+  if (EXCLUDED.test(n)) return null;
+  for (const [k, p] of DEFAULT_STATUS) if (n.includes(k)) return p;
+  return 0;
+}
+
+function detect(headers) {
+  const used = new Set(), out = {};
+  const nh = headers.map(norm), low = headers.map((h) => String(h).trim().toLowerCase());
+  // lượt 1: khớp tuyệt đối tên field
+  for (const key of ORDER) {
+    const i = (COLS[key].exact || []).map((e) => low.indexOf(e)).find((i) => i >= 0 && !used.has(i));
+    if (i != null) { out[key] = headers[i]; used.add(i); }
+  }
+  // lượt 2: khớp gần đúng cho các cột còn thiếu
+  for (const key of ORDER) {
+    if (out[key]) continue;
+    const { kw, exclude = [] } = COLS[key];
+    let found = null;
+    for (const k of kw) {
+      const i = nh.findIndex((h, idx) => !used.has(idx) && (h === k || h.includes(k)) && !exclude.some((e) => h.includes(e) && !k.includes(e)));
+      if (i >= 0) { found = i; break; }
+    }
+    if (found != null) { out[key] = headers[found]; used.add(found); }
+  }
+  return out;
+}
+
+function toISO(v) {
+  if (v == null || v === '' || v === false) return null;
+  if (v instanceof Date && !isNaN(v)) return isoOf(new Date(Date.UTC(v.getFullYear(), v.getMonth(), v.getDate())));
+  if (typeof v === 'number') { const d = XLSX.SSF.parse_date_code(v); return d ? isoOf(new Date(Date.UTC(d.y, d.m - 1, d.d))) : null; }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return isoOf(new Date(Date.UTC(+m[1], m[2] - 1, +m[3])));
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/); if (m) return isoOf(new Date(Date.UTC(+m[3], m[2] - 1, +m[1])));
+  return null;
+}
+function toTs(v) {
+  if (v == null || v === '' || v === false) return null;
+  if (v instanceof Date && !isNaN(v)) return v.getTime();
+  if (typeof v === 'number') { const d = XLSX.SSF.parse_date_code(v); return d ? new Date(d.y, d.m - 1, d.d, d.H, d.M, d.S).getTime() : null; }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) return new Date(+m[1], m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+  m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if (m) return new Date(+m[3], m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)).getTime();
+  return null;
+}
+// Mốc so sánh WIP: ngày đánh giá là hôm nay thì lấy giờ hiện tại, ngày khác thì lấy cuối ngày đó
+function wipRef() {
+  const now = new Date(), today = isoOf(new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())));
+  if (S.asof === today) return now.getTime();
+  const [y, mo, d] = S.asof.split('-').map(Number);
+  return new Date(y, mo - 1, d, 23, 59, 59).getTime();
+}
+const num = (v) => { const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? 0 : n; };
+const msName = (v) => (v == null || v === false || String(v).trim() === '' || String(v).trim().toLowerCase() === 'false' ? '' : String(v).replace(/\s+/g, ' ').trim());
+
+async function loadFile(file) {
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+  initData(wb, file.name, false);
+}
+function initData(wb, fileName, isSample) {
+  const sheetName = wb.SheetNames.find((n) => !/milestone/i.test(n)) || wb.SheetNames[0];
+  const raw = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], { defval: null, raw: true });
+  const rows = raw.map((r) => { const o = {}; for (const k in r) o[cleanHeader(k)] = r[k]; return o; }).filter((r) => Object.values(r).some((v) => v != null && v !== ''));
+  const headers = rows.length ? Object.keys(rows[0]) : [];
+  // milestone sheet (optional)
+  const msSheet = wb.SheetNames.find((n) => /milestone/i.test(n) && n !== sheetName);
+  const msDates = {};
+  if (msSheet) {
+    XLSX.utils.sheet_to_json(wb.Sheets[msSheet], { defval: null, raw: true }).forEach((r) => {
+      const keys = Object.keys(r), nk = keys.map(norm);
+      const name = keys[nk.findIndex((k) => k.includes('milestone') || k === 'name' || k === 'ten')] ?? keys[0];
+      const st = keys[nk.findIndex((k) => k.includes('start') || k.includes('bat dau'))];
+      const en = keys[nk.findIndex((k) => k.includes('end') || k.includes('ket thuc') || k.includes('deadline'))];
+      const m = msName(r[name]); if (m) msDates[m] = { start: st ? toISO(r[st]) : null, end: en ? toISO(r[en]) : null };
+    });
+  }
+  const map = detect(headers);
+  const statuses = [...new Set(rows.map((r) => String(r[map.status] ?? '').trim()).filter(Boolean))];
+  const statusPct = {}; statuses.forEach((s) => (statusPct[s] = defaultStatusPct(s)));
+  const today = new Date();
+  S = {
+    fileName, sheetName, isSample, rows, headers, map, statusPct, msDates,
+    asof: (S && S.asof) || $('asof').value || isoOf(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))),
+    unit: guessUnit(rows, map), hpd: 8, f: { ms: '', stage: '', person: '' }, page: 0, alloc: $('alloc').value, wipFactor: (+$('wipf').value || 75) / 100, sortKey: 'pct', sortDir: -1,
+    people: $('people').value === '' ? null : +$('people').value, hpp: +$('hpp').value || 8,
+  };
+  $('fileChip').textContent = isSample ? 'Dữ liệu ví dụ' : fileName;
+  $('fileChip').title = isSample ? '' : `${fileName} · sheet "${sheetName}" · ${rows.length} dòng`;
+  $('drop').classList.add('hidden');
+  $('app').classList.remove('hidden');
+  buildSettings();
+  render();
+}
+
+function guessUnit(rows, map) {
+  // Workload rất nhỏ so với time spent → nhiều khả năng là ngày công
+  if (!map.workload) return 'hour';
+  const h = norm(map.workload);
+  if (/\(h\)|hour|gio/.test(h)) return 'hour';
+  const wl = rows.reduce((a, r) => a + num(r[map.workload]), 0);
+  const ts = map.timespend ? rows.reduce((a, r) => a + num(r[map.timespend]), 0) : 0;
+  return ts > 0 && wl > 0 && ts / wl > 3 ? 'day' : 'hour';
+}
+
+function buildSettings() {
+  $('asof').value = S.asof; $('unit').value = S.unit; $('hpd').value = S.hpd;
+  const cm = $('colmap'); cm.replaceChildren();
+  Object.entries(COLS).forEach(([key, def]) => {
+    const f = document.createElement('div'); f.className = 'field';
+    const l = document.createElement('label'); l.textContent = def.label;
+    const sel = document.createElement('select');
+    sel.appendChild(new Option('(không dùng)', ''));
+    S.headers.forEach((h) => sel.appendChild(new Option(h, h)));
+    sel.value = S.map[key] || '';
+    sel.onchange = () => {
+      S.map[key] = sel.value || undefined;
+      if (key === 'status') { const st = [...new Set(S.rows.map((r) => String(r[S.map.status] ?? '').trim()).filter(Boolean))]; S.statusPct = {}; st.forEach((s) => (S.statusPct[s] = defaultStatusPct(s))); buildStatusMap(); }
+      render();
+    };
+    f.append(l, sel); cm.appendChild(f);
+  });
+  buildStatusMap();
+}
+function buildStatusMap() {
+  const sm = $('statusmap'); sm.replaceChildren();
+  Object.keys(S.statusPct).forEach((s) => {
+    const f = document.createElement('div'); f.className = 'field'; f.style.maxWidth = '170px'; f.style.minWidth = '120px';
+    const l = document.createElement('label'); l.textContent = isWipStatus(s) ? `${s} (tối đa)` : s;
+    const inp = document.createElement('input'); inp.type = 'number'; inp.min = 0; inp.max = 100; inp.step = 5; inp.className = 'small';
+    inp.value = S.statusPct[s] == null ? '' : Math.round(S.statusPct[s] * 100);
+    inp.oninput = () => { S.statusPct[s] = inp.value === '' ? null : Math.min(Math.max(+inp.value, 0), 100) / 100; render(); };
+    const w = document.createElement('div'); w.style.display = 'flex'; w.style.alignItems = 'center'; w.style.gap = '4px';
+    const p = document.createElement('span'); p.textContent = '%'; p.className = 'sub'; p.style.margin = 0;
+    w.append(inp, p); f.append(l, w); sm.appendChild(f);
+  });
+}
+$('asof').onchange = (e) => { if (S) { S.asof = e.target.value || S.asof; render(); } };
+(() => { const n = new Date(); $('asof').value = isoOf(new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()))); })();
+$('unit').onchange = (e) => { S.unit = e.target.value; render(); };
+$('hpd').oninput = (e) => { S.hpd = Math.max(+e.target.value || 8, 0.5); render(); };
+$('alloc').onchange = (e) => { if (S) { S.alloc = e.target.value; render(); } };
+$('wipf').oninput = (e) => { if (S) { S.wipFactor = Math.min(Math.max((+e.target.value || 75) / 100, 0.05), 2); render(); } };
+$('people').oninput = (e) => { if (S) { S.people = e.target.value === '' ? null : Math.max(+e.target.value, 0); render(); } };
+$('hpp').oninput = (e) => { if (S) { S.hpp = Math.max(+e.target.value || 8, 0.5); render(); } };
+// ---- ngày nghỉ lễ (file riêng) ----
+const HOL_KEY = 'forge-progress-holidays';
+let HOL = { file: null, list: [], set: new Set(), savedAt: null, where: null };
+// nơi lưu: kho dữ liệu của công cụ (dùng chung mọi máy, mọi lần mở); không có thì lưu trên trình duyệt này
+let HOL_DOC = null, HOL_STORE = 'none';
+const DOW = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+function setHolidays(file, list, savedAt, where) {
+  const m = new Map(); list.forEach((h) => { if (!m.has(h.date)) m.set(h.date, h.name); });
+  const l = [...m].map(([date, name]) => ({ date, name })).sort((a, b) => a.date.localeCompare(b.date));
+  HOL = { file, list: l, set: new Set(l.map((h) => h.date)), savedAt: savedAt || null, where: where || null };
+  showHolidays();
+  if (S) render();
+}
+function showHolidays() {
+  const has = HOL.list.length > 0;
+  $('holclear').classList.toggle('hidden', !has);
+  $('holdetails').classList.toggle('hidden', !has);
+  $('holChip').textContent = has ? `${HOL.list.length} ngày` : 'Chưa có';
+  $('holChip').title = has ? HOL.file || '' : '';
+  if (!has) { $('holinfo').textContent = 'Chưa tải file. Thứ Bảy, Chủ nhật luôn được loại khỏi ngày làm việc.'; $('holbody').replaceChildren(); return; }
+  const wk = HOL.list.filter((h) => { const d = utcDay(h.date).getUTCDay(); return d !== 0 && d !== 6; }).length;
+  const whereTxt = HOL.where === 'tool' ? ' · Đã lưu trên công cụ' + (HOL.savedAt ? ' lúc ' + new Date(HOL.savedAt).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' }) : '') + ', tự dùng cho lần sau'
+    : HOL.where === 'browser' ? ' · Chỉ lưu trên trình duyệt này' : HOL.where === 'session' ? ' · Chỉ dùng cho lần mở này (bạn không có quyền lưu lên công cụ)' : '';
+  $('holinfo').textContent = `${HOL.file} · ${HOL.list.length} ngày nghỉ (${fmtDate(HOL.list[0].date)} → ${fmtDate(HOL.list[HOL.list.length - 1].date)}), ${wk} ngày rơi vào thứ 2–6${whereTxt}`;
+  const tb = $('holbody'); tb.replaceChildren();
+  HOL.list.forEach((h) => { const tr = document.createElement('tr'); tr.append(td(fmtDate(h.date)), td(DOW[utcDay(h.date).getUTCDay()]), td(h.name || '')); tb.appendChild(tr); });
+}
+async function loadHolidayFile(file) {
+  const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', cellDates: true });
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: null, raw: true }).filter((r) => r.some((v) => v != null && v !== ''));
+  if (!rows.length) throw new Error('File trống');
+  const ncol = Math.max(...rows.map((r) => r.length));
+  const hasHeader = !rows[0].some((v) => toISO(v));
+  const body = hasHeader ? rows.slice(1) : rows;
+  const head = hasHeader ? rows[0].map((h) => norm(cleanHeader(h))) : [];
+  // giá trị là ngày: ô kiểu ngày, chuỗi dạng ngày, hoặc số serial Excel (loại cột Năm như 2026)
+  const asDate = (v) => {
+    if (v instanceof Date) return toISO(v);
+    if (typeof v === 'number') return v > 20000 && v < 80000 ? toISO(v) : null;
+    return /\d{1,4}[\/.-]\d{1,2}[\/.-]\d{1,4}/.test(String(v)) ? toISO(v) : null;
+  };
+  // cột ngày: phần lớn giá trị đọc được thành ngày
+  const dateCols = [];
+  for (let c = 0; c < ncol; c++) {
+    const vals = body.map((r) => r[c]).filter((v) => v != null && v !== '');
+    if (vals.length && vals.filter((v) => asDate(v)).length / vals.length >= 0.6) dateCols.push(c);
+  }
+  if (!dateCols.length) throw new Error('Không tìm thấy cột ngày');
+  let fromC = dateCols[0], toC = null;
+  if (dateCols.length >= 2) {
+    const f = dateCols.find((c) => /tu ngay|from|start|bat dau/.test(head[c] || '')), t = dateCols.find((c) => /den ngay|\bto\b|end|ket thuc/.test(head[c] || ''));
+    fromC = f ?? dateCols[0]; toC = t ?? dateCols[1];
+  }
+  // cột tên: ưu tiên tiêu đề có chữ name/tên, sau đó cột có nhiều giá trị chữ nhất
+  const textCount = (c) => body.filter((r) => r[c] != null && typeof r[c] === 'string' && r[c].trim() !== '').length;
+  const others = [...Array(ncol).keys()].filter((c) => !dateCols.includes(c) && textCount(c) > 0);
+  const nameC = others.find((c) => /name|ten|description|mo ta|holiday/.test(head[c] || '')) ?? others.sort((a, b) => textCount(b) - textCount(a))[0];
+  const list = [];
+  body.forEach((r) => {
+    const a = asDate(r[fromC]); if (!a) return;
+    const b = toC != null ? asDate(r[toC]) || a : a;
+    const name = nameC != null && r[nameC] != null ? String(r[nameC]).trim() : '';
+    for (let d = a, i = 0; d <= b && i < 400; d = addDays(d, 1), i++) list.push({ date: d, name });
+  });
+  if (!list.length) throw new Error('Không đọc được ngày nào');
+  const savedAt = new Date().toISOString();
+  if (HOL_DOC) {
+    try { await HOL_DOC.set({ file: file.name, list, savedAt }); setHolidays(file.name, list, savedAt, 'tool'); }
+    catch (e) { setHolidays(file.name, list, null, 'session'); }
+    return;
+  }
+  try { localStorage.setItem(HOL_KEY, JSON.stringify({ file: file.name, list, savedAt })); setHolidays(file.name, list, savedAt, 'browser'); }
+  catch (e) { setHolidays(file.name, list, null, 'session'); }
+}
+$('holfile').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadHolidayFile(f).catch((err) => { $('holinfo').textContent = 'Không đọc được file ngày lễ: ' + err.message; $('holChip').textContent = 'Lỗi file'; openDrawer(); }); e.target.value = ''; });
+$('holclear').addEventListener('click', async () => {
+  try { localStorage.removeItem(HOL_KEY); } catch (e) {}
+  if (HOL_DOC) { try { await HOL_DOC.delete(); } catch (e) { $('holinfo').textContent = 'Không xóa được file ngày lễ đã lưu trên công cụ.'; return; } }
+  setHolidays(null, []);
+});
+// đọc bản lưu trên trình duyệt trước (nếu có), rồi bản lưu trên công cụ sẽ thay thế khi tải xong
+try { const saved = JSON.parse(localStorage.getItem(HOL_KEY) || 'null'); if (saved && Array.isArray(saved.list)) setHolidays(saved.file, saved.list, saved.savedAt, 'browser'); } catch (e) {}
+(async () => {
+  const db = window.claude && typeof window.claude.use === 'function' ? await window.claude.use('db').catch(() => null) : null;
+  if (!db) return;
+  HOL_DOC = db.doc('settings/holidays');
+  let timer = setTimeout(() => { if (!HOL.list.length) $('holinfo').textContent = 'Chưa kết nối được nơi lưu ngày lễ, thử tải lại trang sau.'; }, 10000);
+  HOL_DOC.onSnapshot((snap) => {
+    if (!snap.metadata.fromCache) clearTimeout(timer);
+    if (snap.exists) {
+      const d = snap.data() || {};
+      if (Array.isArray(d.list)) setHolidays(String(d.file || 'Ngày lễ'), d.list.filter((h) => h && typeof h.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(h.date)).map((h) => ({ date: h.date, name: String(h.name || '') })), d.savedAt, 'tool');
+    } else if (!snap.metadata.fromCache && HOL.where === 'tool') setHolidays(null, []);
+  }, () => clearTimeout(timer));
+})();
+// ---- lịch làm việc ----
+const addDays = (iso, n) => isoOf(new Date(utcDay(iso).getTime() + n * DAY));
+function isWork(iso) {
+  const dow = utcDay(iso).getUTCDay();
+  return dow !== 0 && dow !== 6 && !HOL.set.has(iso);
+}
+// số ngày làm việc trong [a, b)
+function span(a, b) {
+  if (!a || !b || b <= a) return 0;
+  let n = 0; for (let d = a; d < b; d = addDays(d, 1)) if (isWork(d)) n++;
+  return n;
+}
+
+function compute() {
+  const m = S.map, asof = S.asof, warnings = [];
+  const mult = S.unit === 'day' ? S.hpd : 1;
+  if (!m.status) warnings.push('Chưa chọn cột Status.');
+  if (!m.workload) warnings.push('Chưa chọn cột Workload.');
+  const tasks = [];
+  let noMs = 0, groupRows = 0;
+  const ref = wipRef();
+  // lượt 1: đọc dòng hợp lệ
+  const items = [], msAll = new Set();
+  S.rows.forEach((r) => {
+    const status = String(r[m.status] ?? '').trim();
+    if (!status) { groupRows++; return; } // dòng nhóm / tổng phụ trong file export
+    const p = S.statusPct[status];
+    if (p === null) return; // loại
+    const ms = msName(m.milestone ? r[m.milestone] : '(Toàn dự án)') ;
+    if (!ms) { noMs++; return; }
+    msAll.add(ms);
+    if (S.f.ms && ms !== S.f.ms) return; // lọc milestone: ảnh hưởng toàn bộ chỉ số
+    const sup = m.support ? String(r[m.support] ?? '').trim() : '';
+    items.push({ r, status, p, ms, sup, rawWl: num(r[m.workload]) * mult, est: m.devest ? num(r[m.devest]) : 0, share: 1, peers: [] });
+  });
+  // lượt 2: nhiều Forge ticket chung 1 support ticket → workload chỉ tính 1 lần, chia cho các ticket
+  const bySup = new Map();
+  items.forEach((it) => { if (it.sup) { if (!bySup.has(it.sup)) bySup.set(it.sup, []); bySup.get(it.sup).push(it); } });
+  let sharedSup = 0;
+  bySup.forEach((g, sup) => {
+    if (g.length < 2) return;
+    sharedSup++;
+    const total = Math.max(...g.map((x) => x.rawWl));
+    const sumEst = g.reduce((a, x) => a + x.est, 0);
+    const byEst = S.alloc === 'est' && g.every((x) => x.est > 0.05) && sumEst > 0;
+    g.forEach((x) => { x.share = byEst ? x.est / sumEst : 1 / g.length; x.rawWl = total * x.share; x.byEst = byEst; x.peers = g.filter((y) => y !== x); });
+  });
+  // lượt 3: tính tiến độ từng ticket
+  items.forEach(({ r, status, p, ms, sup, rawWl, share, peers, byEst }) => {
+    const wl = rawWl, ts = m.timespend ? num(r[m.timespend]) : 0;
+    const dev = m.devspent ? num(r[m.devspent]) : ts;
+    const wip = m.wip_date ? toTs(r[m.wip_date]) : null;
+    const isWip = isWipStatus(status);
+    let pc = p ?? 0, wipRatio = null; const notes = [];
+    if (isWip) {
+      // tiến độ WIP = giờ dev đã dùng / (hệ số × workload), không vượt mức trần
+      const base = S.wipFactor * wl, cap = p ?? 0.7;
+      if (base > 0) {
+        wipRatio = dev / base; pc = Math.min(wipRatio, cap);
+        notes.push(`WIP: dev ${fmtH(dev)}h / ${fmtH(base)}h = ${Math.round(wipRatio * 100)}%` + (wipRatio > cap ? `, tính tối đa ${Math.round(cap * 100)}%` : ''));
+        if (wipRatio > 1) notes.push(`Giờ dev đã vượt ${Math.round(S.wipFactor * 100)}% workload mà vẫn WIP`);
+      } else { pc = 0; notes.push('WIP nhưng thiếu workload, tính 0%'); }
+      if (!m.devspent) notes.push('File không có cột giờ dev, tạm dùng tổng Time Spent');
+      if (wip) { const days = (ref - wip) / DAY; if (days > 5) notes.push(`Đã ở WIP ${Math.floor(days)} ngày`); }
+    }
+    // kiểm tra budget làm ở cấp support ticket (bên dưới), không tính riêng từng Forge ticket
+    if (pc === 0 && ts > 0 && !isWip) notes.push('Đã có giờ nhưng status chưa bắt đầu');
+    if (pc >= 0.5 && ts === 0) notes.push('Đã qua Code complete nhưng chưa ghi giờ');
+    let st = m.ms_start ? toISO(r[m.ms_start]) : null, en = m.ms_end ? toISO(r[m.ms_end]) : null;
+    tasks.push({ ticket: m.ticket ? String(r[m.ticket] ?? '') : '', summary: m.summary ? String(r[m.summary] ?? '') : '', milestone: ms,
+      assignee: m.assignee ? String(r[m.assignee] ?? '').trim() || '(chưa gán)' : '', status, pct: pc, wl, ts, ev: wl * pc, note: notes.join('; '), notes, st, en, dev, wipRatio, sup, share, byEst });
+  });
+  if (sharedSup) warnings.push(`${sharedSup} support ticket có nhiều Forge ticket: workload chỉ tính một lần và dùng chung giữa các ticket (phần chia để tính tiến độ: ${S.alloc === 'est' ? 'theo Dev Estimate' : 'chia đều'}, đổi trong Thiết lập).`);
+  if (groupRows) warnings.push(`Bỏ qua ${groupRows} dòng không có status (dòng nhóm/tổng phụ của file export).`);
+  if (noMs) warnings.push(`${noMs} ticket không có milestone, không được tính.`);
+  // milestone dates
+  const groups = new Map();
+  tasks.forEach((t) => { if (!groups.has(t.milestone)) groups.set(t.milestone, []); groups.get(t.milestone).push(t); });
+  const missing = [];
+  const msRows = [...groups].map(([name, g]) => {
+    const fromCols = { start: g.map((t) => t.st).filter(Boolean).sort()[0] || null, end: g.map((t) => t.en).filter(Boolean).sort().pop() || null };
+    const d = S.msDates[name] || {};
+    const start = d.start || fromCols.start, end = d.end || fromCols.end;
+    if (!start || !end) missing.push(name);
+    return summarize(name, g, start, end, asof);
+  });
+  buildMsDates(missing, groups);
+  if (missing.length) warnings.push(`Thiếu ngày bắt đầu/kết thúc cho ${missing.length} milestone. Mở Thiết lập để nhập.`);
+  // project
+  const all = tasks;
+  let proj = null;
+  if (all.length) {
+    const starts = msRows.map((r) => r.start).filter(Boolean).sort(), ends = msRows.map((r) => r.end).filter(Boolean).sort();
+    proj = summarize('Toàn dự án', all, starts[0], ends[ends.length - 1], asof);
+    if (msRows.length > 1) {
+      const pv = msRows.reduce((a, r) => a + r.wl * (r.planned ?? 0), 0);
+      proj.planned = proj.wl ? pv / proj.wl : null;
+      proj.spi = proj.planned ? proj.actual / proj.planned : null;
+      proj.verdict = verdict(proj.spi);
+    }
+  }
+  // gom theo support ticket = budget cam kết với khách hàng
+  const supMap = new Map();
+  tasks.forEach((t) => { const k = t.sup || '#' + t.ticket; if (!supMap.has(k)) supMap.set(k, { sup: t.sup, tickets: [] }); supMap.get(k).tickets.push(t); });
+  const supports = [...supMap.values()].map((g) => {
+    const T = g.tickets, budget = T.reduce((a, t) => a + t.wl, 0), ts = T.reduce((a, t) => a + t.ts, 0), ev = T.reduce((a, t) => a + t.ev, 0);
+    const done = T.every((t) => t.pct >= 1), notes = [];
+    if (budget <= 0) notes.push(g.sup ? 'Support ticket chưa có workload' : 'Thiếu workload');
+    else if (!done && ts > budget) notes.push(`Vượt budget ${Math.round((ts / budget) * 100)}% khi chưa xong`);
+    if (T.length > 1) notes.push(`Budget dùng chung cho ${T.length} Forge ticket, chia ${T[0].byEst ? 'theo Dev Estimate' : 'đều'} để tính tiến độ`);
+    T.forEach((t) => t.notes.forEach((n) => notes.push(T.length > 1 ? `${t.ticket}: ${n}` : n)));
+    return { sup: g.sup, tickets: T, label: g.sup || T[0].ticket, budget, ts, ev, pct: budget ? ev / budget : 0, done, notes };
+  });
+  return { tasks, msRows, proj, warnings, supports, msAll: [...msAll] };
+}
+function verdict(spi) { if (spi != null) spi = Math.round(spi * 100) / 100; return spi == null ? null : spi >= 0.95 ? 'Đúng tiến độ' : spi >= 0.85 ? 'Có rủi ro' : 'Chậm tiến độ'; }
+const vcls = (v) => (v === 'Đúng tiến độ' ? 'ok' : v === 'Có rủi ro' ? 'warn' : v === 'Chậm tiến độ' ? 'bad' : '');
+function summarize(name, g, start, end, asof) {
+  const wl = g.reduce((a, t) => a + t.wl, 0), ts = g.reduce((a, t) => a + t.ts, 0), ev = g.reduce((a, t) => a + t.ev, 0);
+  const actual = wl ? ev / wl : 0;
+  let planned = null, forecast = null, delay = null, daysLeft = null;
+  // ngày đã qua: [start, asof); tổng: [start, end] khi tính ngày làm việc, [start, end) khi tính lịch
+  const endX = end ? addDays(end, 1) : null;
+  const elapsed = start ? span(start, asof) : 0;
+  if (start && end) { const tot = span(start, endX); planned = tot > 0 ? Math.min(Math.max(elapsed / tot, 0), 1) : null; }
+  if (end) daysLeft = asof < endX ? span(asof, endX) : 0;
+  if (start && actual > 0 && elapsed > 0) {
+    const need = elapsed / actual;
+    let d = asof, c = elapsed, lastWork = asof, guard = 0;
+    while (c < need - 1e-9 && guard++ < 4000) { if (isWork(d)) { c++; lastWork = d; } d = addDays(d, 1); }
+    forecast = lastWork;
+    if (end) delay = forecast > end ? span(addDays(end, 1), addDays(forecast, 1)) : -span(addDays(forecast, 1), addDays(end, 1));
+  }
+  const cpiV = ts ? ev / ts : null, rem = Math.max(wl - ev, 0);
+  const needCpi = cpiV > 0 ? rem / cpiV : rem;
+  const spi = planned ? actual / planned : null;
+  return { name, start, end, n: g.length, closed: g.filter((t) => t.pct >= 1).length, wl, ts, ev, actual, planned, spi,
+    cpi: cpiV, forecast, delay, daysLeft, rem, needCpi, verdict: planned === 0 ? 'Chưa bắt đầu' : verdict(spi),
+    notStarted: wl ? g.filter((t) => t.pct === 0).reduce((a, t) => a + t.wl, 0) / wl : 0 };
+}
+function buildMsDates(missing, groups) {
+  const all = [...groups.keys()].filter((n) => missing.includes(n) || S.msDates[n]);
+  $('msdatesWrap').classList.toggle('hidden', !all.length);
+  const tb = $('msdates');
+  if (tb.dataset.sig === all.join('|')) return;
+  tb.dataset.sig = all.join('|'); tb.replaceChildren();
+  all.forEach((n) => {
+    const tr = document.createElement('tr');
+    const td0 = document.createElement('td'); td0.textContent = n;
+    const mk = (k) => { const td = document.createElement('td'); const i = document.createElement('input'); i.type = 'date'; i.value = (S.msDates[n] || {})[k] || '';
+      i.onchange = () => { S.msDates[n] = { ...(S.msDates[n] || {}), [k]: i.value || null }; render(); }; td.appendChild(i); return td; };
+    tr.append(td0, mk('start'), mk('end')); tb.appendChild(tr);
+  });
+}
+
+// ---------- hiển thị ----------
+const dayWord = () => 'ngày làm việc';
+function delayText(dl) { return dl > 0 ? `trễ ${dl} ${dayWord()}` : dl < 0 ? `sớm ${-dl} ${dayWord()}` : 'đúng deadline'; }
+// màu theo giai đoạn (theo status, không theo %)
+function stageRank(s) { const n = norm(s); return /closed|done/.test(n) ? 5 : /qa|ready to deploy|read to deploy/.test(n) ? 4 : /code complete/.test(n) ? 3 : isWipStatus(s) ? 2 : 0; }
+const stageVar = (s) => ['var(--s0)', 'var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)'][stageRank(s)];
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function td(text, cls) { const e = document.createElement('td'); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs = {}, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function textW(svg, s, cls) { const t = svgEl('text', { x: -9999, y: -9999 }, svg); if (cls) t.setAttribute('class', cls); t.textContent = s; const w = t.getComputedTextLength(); t.remove(); return w; }
+function makeTip(box) {
+  let tip = box.querySelector('.tip'); if (!tip) { tip = el('div', 'tip hidden'); box.appendChild(tip); }
+  return {
+    show(ev, lines) {
+      tip.replaceChildren(); lines.forEach((l, i) => { const d = el('div'); if (i === 0) d.appendChild(el('b', null, l)); else d.textContent = l; tip.appendChild(d); });
+      tip.classList.remove('hidden'); const r = box.getBoundingClientRect(); let x = ev.clientX - r.left + 14; if (x + tip.offsetWidth > r.width) x = Math.max(0, ev.clientX - r.left - tip.offsetWidth - 14);
+      tip.style.left = x + 'px'; tip.style.top = ev.clientY - r.top + 14 + 'px';
+    },
+    hide() { tip.classList.add('hidden'); },
+  };
+}
+function chartSvg(box, H, label) {
+  box.replaceChildren(); const W = Math.max(box.clientWidth, 260);
+  const svg = svgEl('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': label }, box);
+  return { svg, W };
+}
+
+let last = null;
+function render() {
+  const R = compute(); last = R;
+  const w = $('warnings');
+  w.classList.toggle('hidden', !R.warnings.length);
+  w.replaceChildren();
+  if (R.warnings.length) { const d = el('div'); d.appendChild(el('b', null, 'Lưu ý')); const ul = el('ul'); R.warnings.forEach((x) => ul.appendChild(el('li', null, x))); d.appendChild(ul); w.appendChild(d); }
+  const p = R.proj;
+  if (!p) { $('headline').textContent = 'Không có ticket hợp lệ để tính'; $('lead').textContent = 'Kiểm tra lại cột Status và Milestone trong Thiết lập.'; return; }
+  const msNames = R.msRows.map((r) => r.name);
+  $('projName').textContent = msNames.length === 1 ? msNames[0] : `${msNames.length} milestone`;
+  renderHealth(p, R);
+  playEnter();
+  renderKpis(p);
+  renderCapacity(p);
+  renderFilters(R);
+  const V = viewOf(R); last.view = V;
+  renderStages(R.tasks);
+  $('msCard').classList.toggle('hidden', false);
+  renderMs(R.msRows);
+  renderAttention(V.supports);
+  renderHours(V.supports);
+  renderPeople(V.tasks);
+  renderTable(V.tasks);
+  renderFoot(R);
+}
+
+// ---- bộ lọc ----
+const matchView = (t) => (!S.f.stage || t.status === S.f.stage) && (!S.f.person || t.assignee === S.f.person);
+function viewOf(R) {
+  const tasks = R.tasks.filter(matchView);
+  const supports = R.supports.filter((s) => s.tickets.some(matchView));
+  return { tasks, supports };
+}
+function fillSelect(sel, allLabel, values, cur) {
+  const sig = values.join('|');
+  if (sel.dataset.sig !== sig) { sel.dataset.sig = sig; sel.replaceChildren(new Option(allLabel, ''), ...values.map((v) => new Option(v, v))); }
+  sel.value = values.includes(cur) ? cur : '';
+  sel.parentElement.classList.toggle('active', !!sel.value);
+}
+function renderFilters(R) {
+  const msList = [...R.msAll].sort((a, b) => a.localeCompare(b, 'vi'));
+  fillSelect($('fMs'), `Tất cả (${msList.length})`, msList, S.f.ms);
+  $('fMsWrap').classList.toggle('hidden', msList.length < 2 && !S.f.ms);
+  $('fMsWrap').classList.toggle('active-f', !!S.f.ms);
+  const stages = [...new Set(R.tasks.map((t) => t.status))].sort((a, b) => stageRank(a) - stageRank(b));
+  if (S.f.stage && !stages.includes(S.f.stage)) S.f.stage = '';
+  fillSelect($('fStage'), 'Tất cả giai đoạn', stages, S.f.stage);
+  const people = S.map.assignee ? [...new Set(R.tasks.map((t) => t.assignee))].sort((a, b) => a.localeCompare(b, 'vi')) : [];
+  if (S.f.person && !people.includes(S.f.person)) S.f.person = '';
+  fillSelect($('fPerson'), 'Tất cả', people, S.f.person);
+  $('fPersonWrap').classList.toggle('hidden', !people.length);
+  const any = S.f.stage || S.f.person;
+  $('fClear').classList.toggle('hidden', !any);
+  const notes = [];
+  if (S.f.ms) notes.push(`Mọi chỉ số đang tính riêng cho milestone “${S.f.ms}”.`);
+  if (S.f.stage || S.f.person) notes.push('Lọc giai đoạn và người làm chỉ áp dụng cho các bảng và biểu đồ ticket; chỉ số tổng vẫn tính trên toàn bộ ticket.');
+  $('fNote').textContent = notes.join(' ');
+  $('fNote').classList.toggle('hidden', !notes.length);
+}
+function setFilter(k, v) { if (!S) return; S.f[k] = v; S.page = 0; render(); }
+$('fMs').addEventListener('change', (e) => setFilter('ms', e.target.value));
+$('fStage').addEventListener('change', (e) => setFilter('stage', e.target.value));
+$('fPerson').addEventListener('change', (e) => setFilter('person', e.target.value));
+$('fClear').addEventListener('click', () => { if (!S) return; S.f.stage = ''; S.f.person = ''; S.page = 0; render(); });
+
+function renderFoot(R) {
+  const f = $('foot'); f.replaceChildren();
+  f.append(el('span', null, `Dữ liệu từ ${S.fileName} · ${R.tasks.length} ticket · ${R.supports.length} support ticket`), el('span', null, `Đánh giá ngày ${fmtDate(S.asof)} · Tạo lúc ${new Date().toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}`));
+}
+
+let entered = null;
+function playEnter() {
+  if (entered === S) return; entered = S;
+  ['health', 'kpis', 'capCard', 'msCard'].forEach((id, i) => { const e = $(id); if (!e) return; e.classList.remove('enter', 'enter-2', 'enter-3', 'enter-4'); void e.offsetWidth; e.classList.add('enter', 'enter-' + (i + 1)); });
+}
+function renderHealth(p, R) {
+  const v = p.verdict || 'Chưa đánh giá', cls = vcls(v);
+  const h = $('health'); h.classList.remove('ok', 'warn', 'bad'); if (cls) h.classList.add(cls);
+  const vd = $('verdict'); vd.className = 'verdict ' + cls; vd.textContent = v;
+  $('headline').textContent = p.planned != null ? `Đạt ${pct(p.actual)} so với kế hoạch ${pct(p.planned)}` : `Đạt ${pct(p.actual)} khối lượng`;
+  const lead = $('lead'); lead.replaceChildren();
+  const add = (t, c, b) => lead.appendChild(el(b ? 'b' : 'span', c, t));
+  if (p.forecast) {
+    add('Giữ tốc độ hiện tại thì dự kiến xong ngày '); add(fmtDate(p.forecast), null, true);
+    if (p.delay != null) add(`, ${delayText(p.delay)} so với deadline ${fmtDate(p.end)}`, p.delay > 0 ? 'bad' : 'ok', p.delay !== 0);
+    add('. ');
+  }
+  if (p.rem > 0 && p.daysLeft) { add('Còn khoảng '); add(fmt1(p.needCpi) + ' giờ', null, true); add(` cần làm trong ${p.daysLeft} ${dayWord()}. `); }
+  if (p.notStarted > 0) { add(pct(p.notStarted), null, true); add(' workload chưa bắt đầu.'); }
+  $('leadsub').textContent = `Ngày đánh giá ${fmtDate(S.asof)} · ${R.tasks.length} ticket · Workload ${S.unit === 'day' ? 'ngày công × ' + S.hpd + 'h' : 'theo giờ'} · Ngày làm việc T2–T6${HOL.list.length ? ', trừ ngày lễ' : ' (chưa có file ngày lễ)'}`;
+  renderRing(p);
+  renderTimeline(p);
+}
+
+function renderRing(p) {
+  const box = $('ring'); box.replaceChildren();
+  const S0 = 172, cx = S0 / 2, r = 70, sw = 14, C = 2 * Math.PI * r;
+  const svg = svgEl('svg', { width: S0, height: S0, viewBox: `0 0 ${S0} ${S0}`, role: 'img', 'aria-label': `Thực tế ${pct(p.actual)}, kế hoạch ${pct(p.planned)}` }, box);
+  svgEl('circle', { cx, cy: cx, r, fill: 'none', stroke: 'var(--track)', 'stroke-width': sw }, svg);
+  const col = 'var(--indigo)';
+  const arc = svgEl('circle', { class: 'ring-arc', cx, cy: cx, r, fill: 'none', stroke: col, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-dasharray': `0 ${C}`, transform: `rotate(-90 ${cx} ${cx})` }, svg);
+  requestAnimationFrame(() => requestAnimationFrame(() => arc.setAttribute('stroke-dasharray', `${C * Math.min(p.actual, 1)} ${C}`)));
+  if (p.planned != null) {
+    const a = -Math.PI / 2 + 2 * Math.PI * p.planned, r1 = r - sw / 2 - 5, r2 = r + sw / 2 + 5;
+    svgEl('circle', { cx: cx + r * Math.cos(a), cy: cx + r * Math.sin(a), r: 8, fill: 'var(--orange)', stroke: '#fff', 'stroke-width': 3 }, svg);
+  }
+  const t = svgEl('text', { x: cx, y: cx + 4, 'text-anchor': 'middle', style: 'font-family:var(--font-display);font-size:30px;font-weight:500;fill:var(--ink)' }, svg); t.textContent = pct(p.actual);
+  const t2 = svgEl('text', { x: cx, y: cx + 26, 'text-anchor': 'middle', style: 'font-size:12px;fill:var(--muted)' }, svg); t2.textContent = 'KH ' + pct(p.planned);
+}
+
+function renderTimeline(p) {
+  const box = $('timeline');
+  if (!p.start || !p.end) { box.replaceChildren(); return; }
+  const lastD = [p.end, p.forecast, S.asof].filter(Boolean).sort().pop();
+  const t0 = utcDay(p.start).getTime(), t1 = utcDay(addDays(lastD, 1)).getTime();
+  const { svg, W } = chartSvg(box, 104, 'Timeline: bắt đầu, hôm nay, deadline và ngày dự báo');
+  const padL = 6, padR = 6, X = (iso) => padL + ((utcDay(iso).getTime() - t0) / (t1 - t0)) * (W - padL - padR);
+  const y = 50;
+  svgEl('rect', { x: padL, y: y - 5, width: W - padL - padR, height: 10, rx: 5, fill: 'var(--track)' }, svg);
+  // phần đã qua
+  const xa = Math.min(Math.max(X(S.asof), padL), W - padR);
+  svgEl('rect', { x: padL, y: y - 5, width: Math.max(0, xa - padL), height: 10, rx: 5, fill: 'var(--accent-soft)', stroke: 'var(--accent)', 'stroke-opacity': 0.35 }, svg);
+  // ngày lễ trong khoảng
+  HOL.list.forEach((h) => { if (h.date >= p.start && h.date <= lastD && isWorkdayDow(h.date)) svgEl('rect', { x: X(h.date), y: y - 5, width: Math.max(2, X(addDays(h.date, 1)) - X(h.date)), height: 10, fill: 'var(--warn)', opacity: 0.55 }, svg); });
+  // vùng trễ
+  if (p.forecast && p.forecast > p.end) svgEl('rect', { x: X(addDays(p.end, 1)), y: y - 5, width: X(addDays(p.forecast, 1)) - X(addDays(p.end, 1)), height: 10, fill: 'var(--bad)', opacity: 0.35 }, svg);
+  const marks = [
+    { d: p.start, x: X(p.start), lbl: 'Bắt đầu', sub: fmtDate(p.start), color: 'var(--muted)', pos: 'below', anchor: 'start' },
+    { d: S.asof, x: xa, lbl: 'Hôm nay', sub: fmtDate(S.asof), color: 'var(--accent)', pos: 'above' },
+    { d: p.end, x: X(addDays(p.end, 1)), lbl: 'Deadline', sub: fmtDate(p.end), color: 'var(--ink)', pos: 'below' },
+  ];
+  if (p.forecast) marks.push({ d: p.forecast, x: X(addDays(p.forecast, 1)), lbl: 'Dự báo', sub: fmtDate(p.forecast), color: p.delay > 0 ? 'var(--bad)' : 'var(--ok)', pos: 'above' });
+  // tránh chồng nhãn cùng phía
+  // 4 hàng nhãn: trên gần, dưới gần, trên xa, dưới xa
+  const slots = [{ side: 'above', ty: y - 15 }, { side: 'below', ty: y + 26 }, { side: 'above', ty: y - 33 }, { side: 'below', ty: y + 44 }];
+  const placed = slots.map(() => []);
+  marks.forEach((m) => {
+    const w = Math.max(textW(svg, m.lbl + ' ' + m.sub), 40);
+    let left = (m.anchor || 'middle') === 'start' ? m.x : m.x - w / 2;
+    if (left < 0) left = 0; if (left + w > W) left = W - w;
+    const order = m.pos === 'above' ? [0, 1, 2, 3] : [1, 0, 3, 2];
+    const si = order.find((i) => !placed[i].some((b) => left < b.r + 8 && left + w > b.l - 8)) ?? order[0];
+    placed[si].push({ l: left, r: left + w });
+    const pos = slots[si].side, ty = slots[si].ty;
+    svgEl('line', { x1: m.x, x2: m.x, y1: pos === 'above' ? ty + 4 : y - 8, y2: pos === 'above' ? y + 8 : ty - 12, stroke: m.color, 'stroke-width': 2 }, svg);
+    if (m.d === S.asof || m.lbl === 'Dự báo') svgEl('circle', { cx: m.x, cy: y, r: 5, fill: m.color, stroke: 'var(--surface)', 'stroke-width': 2 }, svg);
+    const t = svgEl('text', { x: left, y: ty }, svg);
+    const a = svgEl('tspan', { class: 'v', style: `fill:${m.color}` }, t); a.textContent = m.lbl + ' ';
+    const b = svgEl('tspan', {}, t); b.textContent = m.sub;
+  });
+}
+function isWorkdayDow(iso) { const d = utcDay(iso).getUTCDay(); return d !== 0 && d !== 6; }
+
+const KICON = {
+  shield: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 2.5 4 5v4.5c0 3.8 2.6 6.6 6 8 3.4-1.4 6-4.2 6-8V5z" stroke-linejoin="round"/><path d="m7.5 10 1.8 1.8L13 8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  bolt: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M11 2.5 4.5 11H10l-1 6.5L15.5 9H10z" stroke-linejoin="round"/></svg>',
+  cal: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="14" height="13" rx="2"/><path d="M3 8h14M7 2.5v3M13 2.5v3" stroke-linecap="round"/></svg>',
+  check: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="13" height="13" rx="3"/><path d="m7 10.2 2.2 2.2L13.5 8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+};
+function kpi(label, tag, tagCls, val, valSmall, note, valCls, icon, iconColor) {
+  const c = el('div', 'card kpi ' + (tagCls || ''));
+  const head = el('div', 'kpi-head');
+  const ic = el('div', 'kpi-ico ' + (iconColor || 'indigo')); ic.innerHTML = KICON[icon] || ''; ic.setAttribute('aria-hidden', 'true');
+  const l = el('div', 'k-lbl'); l.appendChild(el('span', null, label)); if (tag) l.appendChild(el('span', 'tag ' + (tagCls || ''), tag));
+  head.append(ic, l);
+  const v = el('div', 'k-val ' + (valCls || '')); v.textContent = val; if (valSmall) v.appendChild(el('small', null, ' ' + valSmall));
+  c.append(head, v, el('div', 'k-note', note)); return c;
+}
+function renderKpis(p) {
+  const vc = vcls(p.verdict);
+  const cpiCls = p.cpi == null ? '' : p.cpi >= 0.95 ? 'ok' : p.cpi >= 0.8 ? 'warn' : 'bad';
+  const dl = p.delay;
+  $('kpis').replaceChildren(
+    kpi('SPI · tiến độ', p.verdict || '—', vc, fmt2(p.spi), '', 'Thực tế chia kế hoạch. Từ 0,95 là đạt.', vc ? vc + '-t' : '', 'shield', vc === 'bad' ? 'coral' : vc === 'warn' ? 'orange' : 'green'),
+    kpi('CPI · hiệu suất', cpiCls === 'ok' ? 'Tốt' : cpiCls === 'warn' ? 'Thấp' : cpiCls === 'bad' ? 'Rất thấp' : '—', cpiCls, fmt2(p.cpi), '', p.cpi ? `Mỗi 1 giờ làm tạo ra ${fmt2(p.cpi)} giờ giá trị` : 'Chưa có giờ ghi nhận', cpiCls ? cpiCls + '-t' : '', 'bolt', 'coral'),
+    kpi('Dự báo hoàn thành', dl == null ? '—' : dl > 0 ? `Trễ ${dl} ngày` : dl < 0 ? `Sớm ${-dl} ngày` : 'Đúng hạn', dl > 0 ? 'bad' : dl != null ? 'ok' : '', fmtDate(p.forecast).slice(0, 5), p.forecast ? fmtDate(p.forecast).slice(6) : '', `Deadline ${fmtDate(p.end)}`, dl > 0 ? 'bad-t' : '', 'cal', 'indigo'),
+    kpi('Ticket đã Closed', pct(p.n ? p.closed / p.n : 0), 'info', String(p.closed), `/ ${p.n}`, `${pct(p.notStarted)} workload chưa bắt đầu`, '', 'check', 'orange'),
+  );
+}
+
+function renderCapacity(p) {
+  const msg = $('capMsg'), st = $('capStats');
+  const dl = p.daysLeft, hpp = S.hpp, people = S.people;
+  const perDay = dl ? p.needCpi / dl : null, fte = perDay != null ? perDay / hpp : null;
+  const cap = people != null && dl != null ? people * hpp * dl : null;
+  const stat = (v, l) => { const d = el('div'); d.append(el('div', 'v', v), el('div', 'l', l)); return d; };
+  st.replaceChildren(
+    stat(fmt1(p.rem) + 'h', 'Workload còn lại'),
+    stat(fmt1(p.needCpi) + 'h', p.cpi ? `Giờ còn cần (÷ CPI ${fmt2(p.cpi)})` : 'Giờ còn cần'),
+    stat(dl == null ? '—' : String(dl), 'Ngày làm việc còn lại'),
+  );
+  msg.className = 'cap-msg'; msg.replaceChildren();
+  const add = (t, b) => msg.appendChild(el(b ? 'b' : 'span', null, t));
+  if (p.rem <= 0) { msg.classList.add('ok'); add('Toàn bộ workload đã hoàn thành.'); }
+  else if (!dl) { msg.classList.add('bad'); add(dl === 0 ? `Đã qua deadline, còn ${fmt1(p.needCpi)}h cần làm.` : 'Thiếu ngày kết thúc milestone nên chưa tính được.'); }
+  else if (cap == null) { add('Cần khoảng '); add(fmt1(perDay) + 'h mỗi ngày', true); add(', tương đương '); add(fmt1(fte) + ' người', true); add(` làm ${fmtH(hpp)}h/ngày. Nhập số người để so sánh.`); }
+  else if (cap >= p.needCpi) { msg.classList.add('ok'); add('Đủ năng lực. '); add(`Team có ${fmt1(cap)}h, cần ${fmt1(p.needCpi)}h, dư ${fmt1(cap - p.needCpi)}h`, true); add(' nếu giữ hiệu suất hiện tại.'); }
+  else { msg.classList.add('bad'); add(`Thiếu ${fmt1(p.needCpi - cap)}h. `, true); add(`Team có ${fmt1(cap)}h nhưng cần ${fmt1(p.needCpi)}h. Cần khoảng ${fmt1(fte)} người (hiện ${fmtH(people)}), hoặc nâng CPI lên ${fmt2(p.rem / cap)}.`); }
+  const rows = [['Workload còn lại', p.rem, 'var(--s0)'], ['Giờ còn cần theo CPI', p.needCpi, cap != null && p.needCpi > cap ? 'var(--bad)' : 'var(--accent)']];
+  if (cap != null) rows.push(['Năng lực team', cap, 'var(--ok)']);
+  const box = $('capChart'), bh = 18, gap = 10;
+  const { svg, W } = chartSvg(box, rows.length * (bh + gap), 'So sánh giờ còn cần với năng lực team');
+  const left = Math.max(...rows.map((r) => textW(svg, r[0]))) + 12, right = textW(svg, '0.000,0h', 'v') + 12;
+  const max = Math.max(...rows.map((r) => r[1]), 1), sc = (v) => (Math.max(W - left - right, 10) * v) / max;
+  rows.forEach(([l, v, c], i) => {
+    const g = svgEl('g', { transform: `translate(0,${i * (bh + gap)})` }, svg);
+    svgEl('text', { y: bh / 2 + 4 }, g).textContent = l;
+    svgEl('rect', { x: left, width: Math.max(2, sc(v)), height: bh, rx: 4, fill: c }, g);
+    const t = svgEl('text', { x: left + sc(v) + 6, y: bh / 2 + 4, class: 'v' }, g); t.textContent = fmt1(v) + 'h';
+  });
+}
+
+let donut = null;
+const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+function renderStages(tasks) {
+  const m = new Map();
+  tasks.forEach((t) => { const k = t.status; const o = m.get(k) || { status: k, n: 0, wl: 0, ev: 0 }; o.n++; o.wl += t.wl; o.ev += t.ev; m.set(k, o); });
+  const rows = [...m.values()].map((r) => ({ ...r, pct: r.wl ? r.ev / r.wl : 0 })).sort((a, b) => stageRank(a.status) - stageRank(b.status));
+  const tot = rows.reduce((a, r) => a + r.wl, 0) || 1;
+  $('donutTotal').textContent = fmt1(tot);
+  const colors = rows.map((r) => cssVar(['--s0', '--s1', '--s2', '--s3', '--s4', '--s5'][stageRank(r.status)]));
+  const cv = $('stageDonut');
+  if (window.Chart) {
+    const data = { labels: rows.map((r) => r.status), datasets: [{ data: rows.map((r) => Math.round(r.wl * 10) / 10), backgroundColor: colors.map((c, i) => (S.f.stage && rows[i].status !== S.f.stage ? c + '55' : c)), borderColor: cssVar('--surface'), borderWidth: 2, hoverOffset: 6 }] };
+    if (donut) { donut.data = data; donut.update('none'); }
+    else donut = new Chart(cv, { type: 'doughnut', data, options: {
+      responsive: true, maintainAspectRatio: false, cutout: '66%',
+      animation: { duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700 },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => { const v = c.parsed; return ` ${fmt1(v)}h · ${(v / tot * 100).toFixed(1).replace('.', ',')}%`; } } } },
+      onClick: (e, els) => { if (els.length) { const st = donut.data.labels[els[0].index]; setFilter('stage', S.f.stage === st ? '' : st); } },
+    } });
+  }
+  const box = $('stages'); box.replaceChildren();
+  const head = el('div', 'stage-row stage-head'); head.append(el('span'), el('span', null, 'Giai đoạn'), el('span', 'r', 'Ticket'), el('span', 'r', 'Workload'), el('span', 'r hide-s', 'Tỷ trọng')); box.appendChild(head);
+  rows.forEach((r, i) => {
+    const row = el('div', 'stage-row' + (S.f.stage === r.status ? ' sel' : S.f.stage ? ' dim' : ''));
+    row.tabIndex = 0; row.setAttribute('role', 'button'); row.setAttribute('aria-pressed', S.f.stage === r.status ? 'true' : 'false');
+    const sw = el('span', 'sw'); sw.style.background = colors[i];
+    const name = el('span'); name.append(el('span', null, r.status + ' '), el('span', 'muted small', isWipStatus(r.status) ? `TB ${Math.round(r.pct * 100)}%` : `${Math.round(r.pct * 100)}%`));
+    row.append(sw, name, el('span', 'r', String(r.n)), el('span', 'r', fmt1(r.wl) + 'h'), el('span', 'r muted hide-s', pct(r.wl / tot)));
+    const pick = () => setFilter('stage', S.f.stage === r.status ? '' : r.status);
+    row.addEventListener('click', pick); row.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    box.appendChild(row);
+  });
+}
+
+function renderMs(rows) {
+  const box = $('msChart'), rowH = 62;
+  const { svg, W } = chartSvg(box, rows.length * rowH, 'Tiến độ thực tế so với kế hoạch của từng milestone');
+  const tip = makeTip(box);
+  const padR = textW(svg, '100,0%', 'v') + 10, x = (v) => (W - padR) * Math.min(Math.max(v, 0), 1);
+  rows.forEach((r, i) => {
+    const g = svgEl('g', { transform: `translate(0,${i * rowH})` }, svg);
+    const t = svgEl('text', { x: 0, y: 14 }, g);
+    const a = svgEl('tspan', { class: 'v' }, t); a.textContent = r.name;
+    if (W > 560) { const b = svgEl('tspan', {}, t); b.textContent = `   ${fmtDate(r.start)} → ${fmtDate(r.end)} · ${r.n} ticket · ${r.verdict || ''}`; }
+    svgEl('rect', { x: 0, y: 22, width: x(1), height: 16, rx: 8, fill: 'var(--track)' }, g);
+    const col = r.verdict === 'Chậm tiến độ' ? 'var(--bad)' : r.verdict === 'Có rủi ro' ? 'var(--warn)' : 'var(--accent)';
+    svgEl('rect', { x: 0, y: 22, width: Math.max(0, x(r.actual)), height: 16, rx: 8, fill: col }, g);
+    const v = svgEl('text', { x: x(1) + 8, y: 35, class: 'v' }, g); v.textContent = pct(r.actual);
+    if (r.planned != null) {
+      svgEl('line', { x1: x(r.planned), x2: x(r.planned), y1: 17, y2: 43, stroke: 'var(--ink)', 'stroke-width': 2.5, 'stroke-linecap': 'round' }, g);
+      const k = svgEl('text', { x: x(r.planned), y: 56, 'text-anchor': 'middle' }, g); k.textContent = 'KH ' + pct(r.planned);
+      const kw = textW(svg, k.textContent) / 2; k.setAttribute('x', Math.min(Math.max(x(r.planned), kw + 1), W - kw - 1));
+    }
+    const hit = svgEl('rect', { x: 0, y: 0, width: W, height: rowH, fill: 'transparent' }, g);
+    hit.addEventListener('pointermove', (ev) => tip.show(ev, [r.name, `Thực tế ${pct(r.actual)} · Kế hoạch ${pct(r.planned)}`, `SPI ${fmt2(r.spi)} · CPI ${fmt2(r.cpi)}`, `Dự báo xong ${fmtDate(r.forecast)}${r.delay != null ? ' (' + delayText(r.delay) + ')' : ''}`, `Còn cần ~${fmt1(r.needCpi)}h trong ${r.daysLeft ?? '—'} ${dayWord()}`]));
+    hit.addEventListener('pointerleave', () => tip.hide());
+  });
+}
+
+const sev = (n) => (/Vượt budget|Vượt workload/.test(n) ? 'bad' : /WIP: dev|^Budget dùng chung/.test(n) ? 'info' : 'warn');
+const sevRank = { bad: 0, warn: 1, info: 2 };
+function stageChip(t) { const s = el('span', 'stage-chip'); const i = el('i'); i.style.background = stageVar(t.status); s.append(i, el('span', null, t.status)); return s; }
+function renderAttention(supports) {
+  const rank = (s) => Math.min(...s.notes.map((n) => sevRank[sev(n)]));
+  const att = supports.filter((s) => s.notes.some((n) => sev(n) !== 'info') || s.tickets.some((t) => isWipStatus(t.status)))
+    .sort((a, b) => rank(a) - rank(b) || (b.ts - b.budget) - (a.ts - a.budget));
+  $('attCount').textContent = att.length; $('attCount').className = 'tag ' + (att.some((s) => s.notes.some((n) => sev(n) === 'bad')) ? 'bad' : att.length ? 'warn' : 'ok');
+  const tb = $('attBody'); tb.replaceChildren();
+  if (!att.length) { const tr = el('tr'); const c = td('Không có ticket nào cần chú ý.', 'muted'); c.colSpan = 6; tr.appendChild(c); tb.appendChild(tr); return; }
+  att.forEach((s) => {
+    const tr = el('tr');
+    const c1 = el('td', 'tid'); c1.appendChild(el('div', null, s.label));
+    const c2 = el('td', 'sum'), c3 = el('td');
+    s.tickets.forEach((t) => {
+      const line = el('div'); if (s.sup) line.appendChild(el('span', 'tid', t.ticket + ' ')); line.appendChild(el('span', null, t.summary)); c2.appendChild(line);
+      const ch = el('div'); ch.appendChild(stageChip(t)); c3.appendChild(ch);
+    });
+    const nt = el('td'); const box = el('div', 'notes'); s.notes.forEach((n) => box.appendChild(el('span', 'tag ' + sev(n), n))); nt.appendChild(box);
+    const over = !s.done && s.budget > 0 && s.ts > s.budget;
+    tr.append(c1, c2, c3, td(fmtH(s.budget) + 'h', 'n'), td(fmtH(s.ts) + 'h', 'n' + (over ? ' bad-t' : '')), nt);
+    tb.appendChild(tr);
+  });
+}
+
+function renderHours(supports) {
+  const rows = [...supports].sort((a, b) => b.ts - a.ts || b.budget - a.budget);
+  const box = $('hoursChart'), bh = 16, gap = 7, axisH = 20;
+  const { svg, W } = chartSvg(box, rows.length * (bh + gap) + axisH, 'Budget và giờ đã dùng của từng support ticket');
+  const tip = makeTip(box);
+  const lbl = (r) => r.label + (r.tickets.length > 1 ? ` (${r.tickets.length})` : '');
+  const left = Math.max(...rows.map((r) => textW(svg, lbl(r))), 20) + 12, right = textW(svg, '000,0h', 'v') + 10;
+  const max = Math.max(...rows.map((r) => Math.max(r.budget, r.ts)), 1);
+  const step = max > 80 ? 20 : max > 40 ? 10 : 5, top = Math.ceil(max / step) * step;
+  const sc = (v) => (Math.max(W - left - right, 10) * v) / top;
+  for (let v = 0; v <= top; v += step) {
+    const gx = left + sc(v);
+    svgEl('line', { x1: gx, x2: gx, y1: 0, y2: rows.length * (bh + gap), stroke: 'var(--line)', 'stroke-width': 1 }, svg);
+    const t = svgEl('text', { x: gx, y: rows.length * (bh + gap) + 14, 'text-anchor': 'middle' }, svg); t.textContent = v + 'h';
+  }
+  rows.forEach((r, i) => {
+    const g = svgEl('g', { transform: `translate(0,${i * (bh + gap)})` }, svg);
+    svgEl('text', { y: bh / 2 + 4 }, g).textContent = lbl(r);
+    svgEl('rect', { x: left, width: sc(r.budget), height: bh, rx: 3, fill: 'var(--track)', stroke: 'var(--line-strong)' }, g);
+    const over = !r.done && r.budget > 0 && r.ts > r.budget;
+    svgEl('rect', { x: left, y: 4, width: r.ts ? Math.max(2, sc(r.ts)) : 0, height: bh - 8, rx: 2, fill: over ? 'var(--bad)' : 'var(--orange)' }, g);
+    const v = svgEl('text', { x: left + sc(Math.max(r.budget, r.ts)) + 6, y: bh / 2 + 4, class: 'v' }, g); v.textContent = fmt1(r.ts) + 'h';
+    const hit = svgEl('rect', { x: 0, y: -gap / 2, width: W, height: bh + gap, fill: 'transparent' }, g);
+    hit.addEventListener('pointermove', (ev) => tip.show(ev, [r.sup ? `Support ${r.sup}` : r.label, ...r.tickets.map((t) => `${t.ticket} · ${t.status} · ${fmtH(t.ts)}h — ${t.summary.length > 44 ? t.summary.slice(0, 42) + '…' : t.summary}`), `Budget ${fmtH(r.budget)}h · Đã dùng ${fmtH(r.ts)}h · Tiến độ ${Math.round(r.pct * 100)}%`]));
+    hit.addEventListener('pointerleave', () => tip.hide());
+  });
+}
+
+function miniBar(p, color) { const w = el('div', 'mini'); const b = el('div', 'bar'); const s = el('span'); s.style.width = Math.min(p, 1) * 100 + '%'; s.style.background = color; b.appendChild(s); w.append(b, el('span', null, Math.round(p * 100) + '%')); return w; }
+function renderPeople(tasks) {
+  const card = $('byPersonCard');
+  if (!S.map.assignee) { card.classList.add('hidden'); return; }
+  card.classList.remove('hidden');
+  const m = new Map(); tasks.forEach((t) => { const o = m.get(t.assignee) || { n: 0, wl: 0, ts: 0, ev: 0 }; o.n++; o.wl += t.wl; o.ts += t.ts; o.ev += t.ev; m.set(t.assignee, o); });
+  const tb = $('personBody'); tb.replaceChildren();
+  [...m].sort((a, b) => b[1].wl - a[1].wl).forEach(([name, o]) => {
+    const tr = el('tr'); const cpi = o.ts ? o.ev / o.ts : null;
+    const pc = el('td', 'n'); pc.appendChild(miniBar(o.wl ? o.ev / o.wl : 0, 'var(--accent)'));
+    tr.append(td(name, 'tid'), td(o.n, 'n'), td(fmtH(o.wl), 'n'), td(fmtH(o.ts), 'n'), pc, td(fmt2(cpi), 'n ' + (cpi == null ? '' : cpi >= 0.95 ? 'ok-t' : cpi >= 0.8 ? 'warn-t' : 'bad-t')));
+    tb.appendChild(tr);
+  });
+}
+
+function renderTable(tasks) {
+  const q = norm($('search').value);
+  const k = S.sortKey, d = S.sortDir;
+  const multiMs = new Set(tasks.map((t) => t.milestone)).size > 1;
+  $('allTable').querySelectorAll('.msc').forEach((e) => e.classList.toggle('hidden', !multiMs));
+  $('allTable').querySelectorAll('.supc').forEach((e) => e.classList.toggle('hidden', !S.map.support));
+  $('allTable').querySelectorAll('.asg').forEach((e) => e.classList.toggle('hidden', !S.map.assignee));
+  const rows = tasks.filter((t) => !q || norm(`${t.ticket} ${t.sup} ${t.summary} ${t.status} ${t.assignee}`).includes(q))
+    .sort((a, b) => { const x = a[k], y = b[k]; return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'vi')) * d; });
+  const tb = $('allBody'); tb.replaceChildren();
+  const PAGE = 50, pages = Math.max(1, Math.ceil(rows.length / PAGE));
+  S.page = Math.min(S.page || 0, pages - 1);
+  const from = S.page * PAGE, shown = rows.slice(from, from + PAGE);
+  renderPager(rows.length, from, shown.length, pages);
+  shown.forEach((t) => {
+    const tr = el('tr');
+    const st = el('td'); st.appendChild(stageChip(t));
+    const pc = el('td', 'n'); pc.appendChild(miniBar(t.pct, stageVar(t.status)));
+    const over = t.pct < 1 && t.wl > 0 && t.ts > t.wl;
+    tr.append(td(t.ticket, 'tid'), td(t.sup || '—', 'supc' + (S.map.support ? '' : ' hidden')), td(t.summary, 'sum'), td(t.milestone, 'msc' + (multiMs ? '' : ' hidden')), td(t.assignee, 'asg' + (S.map.assignee ? '' : ' hidden')), st, pc, td(fmtH(t.wl), 'n'), td(fmtH(t.ts), 'n' + (over ? ' bad-t' : '')), td(fmtH(t.ev), 'n'));
+    tb.appendChild(tr);
+  });
+  if (!rows.length) { const tr = el('tr'); const c = td('Không có ticket khớp bộ lọc hoặc từ khóa.', 'muted'); c.colSpan = 10; tr.appendChild(c); tb.appendChild(tr); }
+  document.querySelectorAll('#allTable th').forEach((th) => { th.textContent = th.textContent.replace(/ [▲▼]$/, '') + (th.dataset.k === k ? (d > 0 ? ' ▲' : ' ▼') : ''); th.setAttribute('aria-sort', th.dataset.k === k ? (d > 0 ? 'ascending' : 'descending') : 'none'); });
+}
+document.querySelectorAll('#allTable th').forEach((th) => th.addEventListener('click', () => { if (!S) return; const k = th.dataset.k; S.sortDir = S.sortKey === k ? -S.sortDir : (['pct', 'wl', 'ts', 'ev'].includes(k) ? -1 : 1); S.sortKey = k; renderTable(last.view.tasks); }));
+$('search').addEventListener('input', () => { if (!last) return; S.page = 0; renderTable(last.view.tasks); });
+function renderPager(total, from, count, pages) {
+  const pg = $('pager'); pg.replaceChildren();
+  pg.appendChild(el('span', null, total ? `Hiển thị ${from + 1}–${from + count} trên ${total} ticket` : 'Không có ticket'));
+  if (pages > 1) {
+    const tb = el('div', 'toolbar');
+    const prev = el('button', null, '‹ Trước'), next = el('button', null, 'Sau ›');
+    prev.disabled = S.page === 0; next.disabled = S.page >= pages - 1;
+    prev.onclick = () => { S.page--; renderTable(last.view.tasks); }; next.onclick = () => { S.page++; renderTable(last.view.tasks); };
+    tb.append(prev, el('span', null, `Trang ${S.page + 1}/${pages}`), next); pg.appendChild(tb);
+  }
+}
+
+$('copy').addEventListener('click', async () => {
+  if (!last || !last.proj) return;
+  const p = last.proj, L = [];
+  L.push(`TIẾN ĐỘ DỰ ÁN ${$('projName').textContent} — ngày ${fmtDate(S.asof)}`);
+  L.push(`Thực tế ${pct(p.actual)} / kế hoạch ${pct(p.planned)} · SPI ${fmt2(p.spi)} (${p.verdict || '—'}) · CPI ${fmt2(p.cpi)}`);
+  if (p.forecast) L.push(`Dự báo xong ${fmtDate(p.forecast)}, deadline ${fmtDate(p.end)}${p.delay != null ? ' (' + delayText(p.delay) + ')' : ''}`);
+  L.push(`Closed ${p.closed}/${p.n} ticket · chưa bắt đầu ${pct(p.notStarted)} workload`);
+  if (p.rem > 0) L.push(`Workload còn lại ${fmt1(p.rem)}h → theo CPI còn cần ~${fmt1(p.needCpi)}h trong ${p.daysLeft ?? '—'} ${dayWord()}` + (S.people != null && p.daysLeft ? ` · năng lực team ${fmt1(S.people * S.hpp * p.daysLeft)}h` : ''));
+  if (last.msRows.length > 1) { L.push(''); last.msRows.forEach((r) => L.push(`- ${r.name}: ${pct(r.actual)} / KH ${pct(r.planned)} · SPI ${fmt2(r.spi)} · ${r.verdict || '—'}`)); }
+  const att = last.supports.filter((s) => s.notes.some((n) => sev(n) !== 'info'));
+  if (att.length) { L.push(''); L.push('Cần chú ý (theo support ticket):'); att.slice(0, 10).forEach((s) => L.push(`- ${s.label} [${s.tickets.map((t) => t.ticket + ' ' + t.status).join(', ')}] budget ${fmtH(s.budget)}h, đã dùng ${fmtH(s.ts)}h: ${s.notes.filter((n) => sev(n) !== 'info').join('; ')}`)); }
+  try { await navigator.clipboard.writeText(L.join('\n')); $('toast').textContent = 'Đã copy'; } catch { $('toast').textContent = 'Trình duyệt chặn copy'; }
+  setTimeout(() => ($('toast').textContent = ''), 2000);
+});
+
+// ngăn kéo thiết lập
+function openDrawer() { $('drawer').classList.remove('hidden'); $('scrim').classList.remove('hidden'); $('closeSettings').focus(); }
+function closeDrawer() { $('drawer').classList.add('hidden'); $('scrim').classList.add('hidden'); $('openSettings').focus(); }
+$('openSettings').addEventListener('click', openDrawer);
+$('closeSettings').addEventListener('click', closeDrawer);
+$('scrim').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('drawer').classList.contains('hidden')) closeDrawer(); });
+
+// file & kéo thả
+const drop = $('drop');
+$('file').addEventListener('change', (e) => { const f = e.target.files[0]; if (f) loadFile(f).catch(showErr); e.target.value = ''; });
+['dragenter', 'dragover'].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if (t === 'drop' || e.target === drop) drop.classList.remove('over'); }));
+document.addEventListener('drop', (e) => { const f = e.dataTransfer && e.dataTransfer.files[0]; if (f) loadFile(f).catch(showErr); });
+function showErr(err) { $('fileChip').textContent = 'Không đọc được file'; $('fileinfo').textContent = 'Không đọc được file: ' + (err && err.message ? err.message : err); $('drop').classList.remove('hidden'); }
+let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => S && render(), 150); });
+
+
+})();
+</script>
+</body>
+</html>
