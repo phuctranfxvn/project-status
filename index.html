@@ -352,7 +352,7 @@ th:first-child{border-radius:10px 0 0 10px} th:last-child{border-radius:0 10px 1
       <h2 style="margin-bottom:10px">Lọc danh sách ticket</h2>
       <div class="filters">
         <div class="fgroup"><label for="fStage">Giai đoạn</label><select id="fStage"></select></div>
-        <div class="fgroup" id="fPersonWrap"><label for="fPerson">Người làm</label><select id="fPerson"></select></div>
+        <div class="fgroup" id="fPersonWrap"><label for="fPerson">Developer</label><select id="fPerson"></select></div>
         <button id="fClear" class="hidden">Xóa lọc</button>
       </div>
       <p class="muted small" id="fNote" style="margin:8px 0 0"></p>
@@ -373,14 +373,14 @@ th:first-child{border-radius:10px 0 0 10px} th:last-child{border-radius:0 10px 1
 
     <section class="card pdf-block" id="byPersonCard">
       <div class="card-head"><div><h2>Theo người thực hiện</h2></div></div>
-      <div class="tw"><table><thead><tr><th>Người làm</th><th class="n">Ticket</th><th class="n">Workload (h)</th><th class="n">Đã dùng (h)</th><th class="n">Tiến độ</th><th class="n">CPI</th></tr></thead><tbody id="personBody"></tbody></table></div>
+      <div class="tw"><table><thead><tr><th>Developer</th><th class="n">Ticket</th><th class="n">Workload (h)</th><th class="n">Đã dùng (h)</th><th class="n">Tiến độ</th><th class="n">CPI</th></tr></thead><tbody id="personBody"></tbody></table></div>
     </section>
 
     <section class="card pdf-block">
       <div class="card-head"><div><h2>Toàn bộ ticket</h2><p class="muted small">Bấm tiêu đề cột để sắp xếp.</p></div>
         <div class="toolbar"><label for="search" class="hidden">Tìm ticket</label><input type="search" id="search" placeholder="Tìm mã, nội dung, status…"></div></div>
       <div class="tw"><table id="allTable"><thead><tr>
-        <th data-k="ticket">Ticket</th><th data-k="sup" class="supc">Support</th><th data-k="summary">Nội dung</th><th data-k="milestone" class="msc">Milestone</th><th data-k="assignee" class="asg">Người làm</th><th data-k="status">Giai đoạn</th>
+        <th data-k="ticket">Ticket</th><th data-k="sup" class="supc">Support</th><th data-k="summary">Nội dung</th><th data-k="milestone" class="msc">Milestone</th><th data-k="assignee" class="asg">Developer</th><th data-k="status">Giai đoạn</th>
         <th class="n" data-k="pct">Tiến độ</th><th class="n" data-k="wl">Phần budget (h)</th><th class="n" data-k="ts">Đã dùng (h)</th><th class="n" data-k="ev">Earned (h)</th>
       </tr></thead><tbody id="allBody"></tbody></table></div>
       <div class="pager" id="pager"></div>
@@ -416,10 +416,11 @@ th:first-child{border-radius:10px 0 0 10px} th:last-child{border-radius:0 10px 1
       <div class="fgrid">
         <div class="field"><label for="unit">Đơn vị</label><select id="unit"><option value="day">Ngày công (mặc định)</option><option value="hour">Giờ</option></select></div>
         <div class="field"><label for="hpd">Giờ / ngày công</label><input type="number" id="hpd" value="8" min="1" step="0.5"></div>
+        <div class="field"><label for="wlpct">Workload nội bộ (% của support ticket)</label><input type="number" id="wlpct" value="100" min="1" max="200" step="5"></div>
       </div>
       <div class="field" style="margin-top:10px"><label for="alloc">Nhiều Forge ticket chung một support ticket</label>
         <select id="alloc"><option value="est">Chia workload theo Dev Estimate</option><option value="equal">Chia đều cho các ticket</option></select></div>
-      <p class="muted small" style="margin:6px 0 0">Workload nằm ở support ticket nên chỉ được tính một lần, rồi chia cho các Forge ticket liên quan.</p>
+      <p class="muted small" style="margin:6px 0 0">Ví dụ đặt 75% thì workload dùng để tính tiến độ, budget và CPI bằng 75% workload của support ticket. Workload nằm ở support ticket nên chỉ được tính một lần, rồi chia cho các Forge ticket liên quan.</p>
     </div>
     <div>
       <h3>Tiến độ ticket WIP</h3>
@@ -481,9 +482,9 @@ const COLS = {
   workload: { label: 'Workload', exact: ['tms_support_ticket_id/workload', 'support ticket/workload'], kw: ['workload', 'khoi luong', 'uoc tinh'] },
   support: { label: 'Support ticket (workload dùng chung)', exact: ['tms_support_ticket_id/name', 'tms_support_ticket_id', 'support ticket'], kw: ['support ticket'], exclude: ['workload'] },
   devest: { label: 'Dev Estimate (chia workload)', exact: ['development_time', 'dev estimate (h)'], kw: ['dev estimate', 'development time'] },
-  devspent: { label: 'Giờ dev đã dùng (cho WIP)', exact: ['time_spent_dev', 'time spent dev'], kw: ['time spent dev', 'dev time spent', 'dev spent', 'spent dev', 'time spent (dev)', 'gio dev'] },
-  timespend: { label: 'Time spent', exact: ['time_spent', 'time spent'], kw: ['time spent', 'timespend', 'time spend', 'spent', 'effort', 'actual'] },
-  assignee: { label: 'Người làm', kw: ['assignee', 'assigned to', 'nguoi thuc hien', 'developer', 'owner', 'pic', 'user'] },
+  devspent: { label: 'Giờ dev đã dùng',exact: ['time_spent_dev', 'time spent dev'], kw: ['time spent dev', 'dev time spent', 'dev spent', 'spent dev', 'time spent (dev)', 'gio dev'] },
+  timespend: { label: 'Time spent (dự phòng khi thiếu cột dev)',exact: ['time_spent', 'time spent'], kw: ['time spent', 'timespend', 'time spend', 'spent', 'effort', 'actual'] },
+  assignee: { label: 'Developer', exact: ['developer_id', 'developer'], kw: ['assignee', 'assigned to', 'nguoi thuc hien', 'developer', 'owner', 'pic', 'user'] },
   ms_start: { label: 'Ngày bắt đầu milestone', exact: ['milestone_id/date_start', 'milestone/date start'], kw: ['milestone date start', 'milestone start', 'date start'] },
   ms_end: { label: 'Ngày kết thúc milestone', exact: ['milestone_id/date_end', 'milestone/date end'], kw: ['milestone date end', 'milestone end', 'date end', 'deadline'] },
   wip_date: { label: 'Ngày bắt đầu WIP', exact: ['wip_start', 'wip start'], kw: ['wip start', 'wip start date', 'last stage update', 'stage date', 'date last stage', 'wip date', 'wip since'] },
@@ -584,7 +585,7 @@ function initData(wb, fileName, isSample) {
   S = {
     fileName, sheetName, isSample, rows, headers, map, statusPct, msDates,
     asof: (S && S.asof) || $('asof').value || isoOf(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))),
-    unit: guessUnit(rows, map), hpd: 8, f: { ms: '', stage: '', person: '' }, page: 0, alloc: $('alloc').value, wipFactor: (+$('wipf').value || 75) / 100, sortKey: 'pct', sortDir: -1,
+    unit: guessUnit(rows, map), hpd: 8, f: { ms: '', stage: '', person: '' }, page: 0, alloc: $('alloc').value, wipFactor: (+$('wipf').value || 75) / 100, wlPct: (+$('wlpct').value || 100) / 100, sortKey: 'pct', sortDir: -1,
     people: $('people').value === '' ? null : +$('people').value, hpp: +$('hpp').value || 8,
   };
   $('fileChip').textContent = isSample ? 'Dữ liệu ví dụ' : fileName;
@@ -638,6 +639,7 @@ $('asof').onchange = (e) => { if (S) { S.asof = e.target.value || S.asof; render
 (() => { const n = new Date(); $('asof').value = isoOf(new Date(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()))); })();
 $('unit').onchange = (e) => { S.unit = e.target.value; render(); };
 $('hpd').oninput = (e) => { S.hpd = Math.max(+e.target.value || 8, 0.5); render(); };
+$('wlpct').oninput = (e) => { if (S) { S.wlPct = Math.min(Math.max((+e.target.value || 100) / 100, 0.01), 2); render(); } };
 $('alloc').onchange = (e) => { if (S) { S.alloc = e.target.value; render(); } };
 $('wipf').oninput = (e) => { if (S) { S.wipFactor = Math.min(Math.max((+e.target.value || 75) / 100, 0.05), 2); render(); } };
 $('people').oninput = (e) => { if (S) { S.people = e.target.value === '' ? null : Math.max(+e.target.value, 0); render(); } };
@@ -761,7 +763,8 @@ function span(a, b) {
 
 function compute() {
   const m = S.map, asof = S.asof, warnings = [];
-  const mult = S.unit === 'day' ? S.hpd : 1;
+  // workload nội bộ = wlPct × workload support ticket (mặc định 100%)
+  const mult = (S.unit === 'day' ? S.hpd : 1) * S.wlPct;
   if (!m.status) warnings.push('Chưa chọn cột Status.');
   if (!m.workload) warnings.push('Chưa chọn cột Workload.');
   const tasks = [];
@@ -795,8 +798,9 @@ function compute() {
   });
   // lượt 3: tính tiến độ từng ticket
   items.forEach(({ r, status, p, ms, sup, rawWl, share, peers, byEst }) => {
-    const wl = rawWl, ts = m.timespend ? num(r[m.timespend]) : 0;
-    const dev = m.devspent ? num(r[m.devspent]) : ts;
+    // mọi chỉ số giờ đã dùng (CPI, budget, WIP, bảng, biểu đồ) tính theo time_spent_dev; chỉ dùng time_spent khi file không có cột dev
+    const dev = m.devspent ? num(r[m.devspent]) : m.timespend ? num(r[m.timespend]) : 0;
+    const wl = rawWl, ts = dev;
     const wip = m.wip_date ? toTs(r[m.wip_date]) : null;
     const isWip = isWipStatus(status);
     let pc = p ?? 0, wipRatio = null; const notes = [];
@@ -808,7 +812,6 @@ function compute() {
         notes.push(`WIP: dev ${fmtH(dev)}h / ${fmtH(base)}h = ${Math.round(wipRatio * 100)}%` + (wipRatio > cap ? `, tính tối đa ${Math.round(cap * 100)}%` : ''));
         if (wipRatio > 1) notes.push(`Giờ dev đã vượt ${Math.round(S.wipFactor * 100)}% workload mà vẫn WIP`);
       } else { pc = 0; notes.push('WIP nhưng thiếu workload, tính 0%'); }
-      if (!m.devspent) notes.push('File không có cột giờ dev, tạm dùng tổng Time Spent');
       if (wip) { const days = (ref - wip) / DAY; if (days > 5) notes.push(`Đã ở WIP ${Math.floor(days)} ngày`); }
     }
     // kiểm tra budget làm ở cấp support ticket (bên dưới), không tính riêng từng Forge ticket
@@ -818,6 +821,8 @@ function compute() {
     tasks.push({ ticket: m.ticket ? String(r[m.ticket] ?? '') : '', summary: m.summary ? String(r[m.summary] ?? '') : '', milestone: ms,
       assignee: m.assignee ? String(r[m.assignee] ?? '').trim() || '(chưa gán)' : '', status, pct: pc, wl, ts, ev: wl * pc, note: notes.join('; '), notes, st, en, dev, wipRatio, sup, share, byEst });
   });
+  if (!m.devspent) warnings.push(m.timespend ? 'File không có cột time_spent_dev, tạm dùng time_spent cho mọi chỉ số giờ.' : 'File không có cột time_spent_dev, giờ đã dùng tính là 0.');
+  if (S.wlPct !== 1) warnings.push(`Workload nội bộ tính bằng ${Math.round(S.wlPct * 100)}% workload của support ticket (đổi trong Thiết lập).`);
   if (sharedSup) warnings.push(`${sharedSup} support ticket có nhiều Forge ticket: workload chỉ tính một lần và dùng chung giữa các ticket (phần chia để tính tiến độ: ${S.alloc === 'est' ? 'theo Dev Estimate' : 'chia đều'}, đổi trong Thiết lập).`);
   if (groupRows) warnings.push(`Bỏ qua ${groupRows} dòng không có status (dòng nhóm/tổng phụ của file export).`);
   if (noMs) warnings.push(`${noMs} ticket không có milestone, không được tính.`);
@@ -1035,7 +1040,7 @@ function renderHealth(p, R) {
   }
   if (p.rem > 0 && p.daysLeft) { add('Còn khoảng '); add(fmt1(p.needCpi) + ' giờ', null, true); add(` cần làm trong ${p.daysLeft} ${dayWord()}. `); }
   if (p.notStarted > 0) { add(pct(p.notStarted), null, true); add(' workload chưa bắt đầu.'); }
-  $('leadsub').textContent = `Ngày đánh giá ${fmtDate(S.asof)} · ${R.tasks.length} ticket · Workload ${S.unit === 'day' ? 'ngày công × ' + S.hpd + 'h' : 'theo giờ'} · Ngày làm việc T2–T6${HOL.list.length ? ', trừ ngày lễ' : ' (chưa có file ngày lễ)'}`;
+  $('leadsub').textContent = `Ngày đánh giá ${fmtDate(S.asof)} · ${R.tasks.length} ticket · Workload ${S.unit === 'day' ? 'ngày công × ' + S.hpd + 'h' : 'theo giờ'}${S.wlPct !== 1 ? ' × ' + Math.round(S.wlPct * 100) + '%' : ''} · Ngày làm việc T2–T6${HOL.list.length ? ', trừ ngày lễ' : ' (chưa có file ngày lễ)'}`;
   renderRing(p);
   renderTimeline(p);
 }
@@ -1232,7 +1237,7 @@ function renderAttention(supports) {
     const c1 = el('td', 'tid'); c1.appendChild(el('div', null, s.label));
     const c2 = el('td', 'sum'), c3 = el('td');
     s.tickets.forEach((t) => {
-      const line = el('div'); if (s.sup) line.appendChild(el('span', 'tid', t.ticket + ' ')); line.appendChild(el('span', null, t.summary)); c2.appendChild(line);
+      const line = el('div'); if (s.sup) line.appendChild(el('span', 'tid', t.ticket + ' ')); line.appendChild(el('span', null, t.summary)); if (S.map.assignee) line.appendChild(el('span', 'muted', ' · ' + t.assignee)); c2.appendChild(line);
       const ch = el('div'); ch.appendChild(stageChip(t)); c3.appendChild(ch);
     });
     const nt = el('td'); const box = el('div', 'notes'); s.notes.forEach((n) => box.appendChild(el('span', 'tag ' + sev(n), n))); nt.appendChild(box);
@@ -1265,7 +1270,7 @@ function renderHours(supports) {
     svgEl('rect', { x: left, y: 4, width: r.ts ? Math.max(2, sc(r.ts)) : 0, height: bh - 8, rx: 2, fill: over ? 'var(--bad)' : 'var(--orange)' }, g);
     const v = svgEl('text', { x: left + sc(Math.max(r.budget, r.ts)) + 6, y: bh / 2 + 4, class: 'v' }, g); v.textContent = fmt1(r.ts) + 'h';
     const hit = svgEl('rect', { x: 0, y: -gap / 2, width: W, height: bh + gap, fill: 'transparent' }, g);
-    hit.addEventListener('pointermove', (ev) => tip.show(ev, [r.sup ? `Support ${r.sup}` : r.label, ...r.tickets.map((t) => `${t.ticket} · ${t.status} · ${fmtH(t.ts)}h — ${t.summary.length > 44 ? t.summary.slice(0, 42) + '…' : t.summary}`), `Budget ${fmtH(r.budget)}h · Đã dùng ${fmtH(r.ts)}h · Tiến độ ${Math.round(r.pct * 100)}%`]));
+    hit.addEventListener('pointermove', (ev) => tip.show(ev, [r.sup ? `Support ${r.sup}` : r.label, ...r.tickets.map((t) => `${t.ticket} · ${t.status}${S.map.assignee ? ' · ' + t.assignee : ''} · ${fmtH(t.ts)}h — ${t.summary.length > 44 ? t.summary.slice(0, 42) + '…' : t.summary}`), `Budget ${fmtH(r.budget)}h · Đã dùng ${fmtH(r.ts)}h · Tiến độ ${Math.round(r.pct * 100)}%`]));
     hit.addEventListener('pointerleave', () => tip.hide());
   });
 }
@@ -1334,7 +1339,7 @@ $('copy').addEventListener('click', async () => {
   if (p.rem > 0) L.push(`Workload còn lại ${fmt1(p.rem)}h → theo CPI còn cần ~${fmt1(p.needCpi)}h trong ${p.daysLeft ?? '—'} ${dayWord()}` + (S.people != null && p.daysLeft ? ` · năng lực team ${fmt1(S.people * S.hpp * p.daysLeft)}h` : ''));
   if (last.msRows.length > 1) { L.push(''); last.msRows.forEach((r) => L.push(`- ${r.name}: ${pct(r.actual)} / KH ${pct(r.planned)} · SPI ${fmt2(r.spi)} · ${r.verdict || '—'}`)); }
   const att = last.supports.filter((s) => s.notes.some((n) => sev(n) !== 'info'));
-  if (att.length) { L.push(''); L.push('Cần chú ý (theo support ticket):'); att.slice(0, 10).forEach((s) => L.push(`- ${s.label} [${s.tickets.map((t) => t.ticket + ' ' + t.status).join(', ')}] budget ${fmtH(s.budget)}h, đã dùng ${fmtH(s.ts)}h: ${s.notes.filter((n) => sev(n) !== 'info').join('; ')}`)); }
+  if (att.length) { L.push(''); L.push('Cần chú ý (theo support ticket):'); att.slice(0, 10).forEach((s) => L.push(`- ${s.label} [${s.tickets.map((t) => t.ticket + ' ' + t.status + (S.map.assignee ? ' (' + t.assignee + ')' : '')).join(', ')}] budget ${fmtH(s.budget)}h, đã dùng ${fmtH(s.ts)}h: ${s.notes.filter((n) => sev(n) !== 'info').join('; ')}`)); }
   try { await navigator.clipboard.writeText(L.join('\n')); $('toast').textContent = 'Đã copy'; } catch { $('toast').textContent = 'Trình duyệt chặn copy'; }
   setTimeout(() => ($('toast').textContent = ''), 2000);
 });
