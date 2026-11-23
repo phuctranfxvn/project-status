@@ -390,7 +390,7 @@ th:first-child{border-radius:10px 0 0 10px} th:last-child{border-radius:0 10px 1
       <summary style="cursor:pointer;font-weight:600;color:var(--ink)">Cách tính các chỉ số</summary>
       <ul>
         <li>% tiến độ theo status: Assigned 0%, Code completed 70%, Ready to Deploy / QA 80%, Closed 100% (chỉnh được ở Thiết lập).</li>
-        <li>Ticket WIP: tiến độ = giờ dev đã dùng ÷ 75% workload, tối đa 70%. Ví dụ workload 10h, dev đã dùng 3h → 3 ÷ 7,5 = 40%.</li>
+        <li>Ticket WIP: tiến độ = giờ dev đã dùng ÷ workload nội bộ, tối đa 70%. Ví dụ workload 10h, dev đã dùng 3h → 3 ÷ 10 = 30%.</li>
         <li>Earned = Workload × % tiến độ. Tiến độ thực tế = tổng Earned / tổng Workload.</li>
         <li>Ngày làm việc: thứ 2 đến thứ 6, trừ các ngày trong file ngày lễ.</li>
         <li>Kế hoạch = số ngày làm việc đã qua / tổng số ngày làm việc của milestone, tại ngày đánh giá. Toàn dự án lấy bình quân theo workload.</li>
@@ -421,13 +421,6 @@ th:first-child{border-radius:10px 0 0 10px} th:last-child{border-radius:0 10px 1
       <div class="field" style="margin-top:10px"><label for="alloc">Nhiều Forge ticket chung một support ticket</label>
         <select id="alloc"><option value="est">Chia workload theo Dev Estimate</option><option value="equal">Chia đều cho các ticket</option></select></div>
       <p class="muted small" style="margin:6px 0 0">Ví dụ đặt 75% thì workload dùng để tính tiến độ, budget và CPI bằng 75% workload của support ticket. Workload nằm ở support ticket nên chỉ được tính một lần, rồi chia cho các Forge ticket liên quan.</p>
-    </div>
-    <div>
-      <h3>Tiến độ ticket WIP</h3>
-      <p class="muted small" style="margin:0 0 8px">Tiến độ = giờ dev đã dùng ÷ (hệ số × workload), không vượt mức tối đa đặt cho WIP ở phần % theo status.</p>
-      <div class="fgrid">
-        <div class="field"><label for="wipf">Hệ số workload (%)</label><input type="number" id="wipf" value="75" min="5" max="200" step="5"></div>
-      </div>
     </div>
     <div>
       <h3>Ngày nghỉ lễ</h3>
@@ -490,8 +483,11 @@ const COLS = {
   wip_date: { label: 'Ngày bắt đầu WIP', exact: ['wip_start', 'wip start'], kw: ['wip start', 'wip start date', 'last stage update', 'stage date', 'date last stage', 'wip date', 'wip since'] },
 };
 const ORDER = ['ms_start', 'ms_end', 'wip_date', 'workload', 'support', 'devest', 'ticket', 'summary', 'milestone', 'status', 'devspent', 'timespend', 'assignee'];
-// WIP: giá trị ở đây là mức trần; tiến độ thật = giờ dev đã dùng / (hệ số × workload)
+// WIP: giá trị ở đây là mức trần; tiến độ thật = giờ dev đã dùng / workload nội bộ
 const DEFAULT_STATUS = [['closed', 1], ['done', 1], ['assigned to qa', 0.8], ['qa', 0.8], ['ready to deploy', 0.8], ['read to deploy', 0.8], ['code complete', 0.7], ['wip', 0.7], ['in progress', 0.7]];
+// support ticket chưa có forge ticket: file export (export_forge_tickets.py) ghi state = "No Forge Ticket"
+const isNoForge = (s) => norm(s) === 'no forge ticket';
+const tid = (t) => t.ticket || '—';
 const isWipStatus = (s) => /\bwip\b|in progress/.test(norm(s));
 const EXCLUDED = /cancel|reject|duplicate|won t fix|wont fix/;
 
@@ -579,13 +575,13 @@ function initData(wb, fileName, isSample) {
     });
   }
   const map = detect(headers);
-  const statuses = [...new Set(rows.map((r) => String(r[map.status] ?? '').trim()).filter(Boolean))];
+  const statuses = [...new Set(rows.map((r) => String(r[map.status] ?? '').trim()).filter((x) => x && !isNoForge(x)))];
   const statusPct = {}; statuses.forEach((s) => (statusPct[s] = defaultStatusPct(s)));
   const today = new Date();
   S = {
     fileName, sheetName, isSample, rows, headers, map, statusPct, msDates,
     asof: (S && S.asof) || $('asof').value || isoOf(new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()))),
-    unit: guessUnit(rows, map), hpd: 8, f: { ms: '', stage: '', person: '' }, page: 0, alloc: $('alloc').value, wipFactor: (+$('wipf').value || 75) / 100, wlPct: (+$('wlpct').value || 100) / 100, sortKey: 'pct', sortDir: -1,
+    unit: guessUnit(rows, map), hpd: 8, f: { ms: '', stage: '', person: '' }, page: 0, alloc: $('alloc').value, wlPct: (+$('wlpct').value || 100) / 100, sortKey: 'pct', sortDir: -1,
     people: $('people').value === '' ? null : +$('people').value, hpp: +$('hpp').value || 8,
   };
   $('fileChip').textContent = isSample ? 'Dữ liệu ví dụ' : fileName;
@@ -615,7 +611,7 @@ function buildSettings() {
     sel.value = S.map[key] || '';
     sel.onchange = () => {
       S.map[key] = sel.value || undefined;
-      if (key === 'status') { const st = [...new Set(S.rows.map((r) => String(r[S.map.status] ?? '').trim()).filter(Boolean))]; S.statusPct = {}; st.forEach((s) => (S.statusPct[s] = defaultStatusPct(s))); buildStatusMap(); }
+      if (key === 'status') { const st = [...new Set(S.rows.map((r) => String(r[S.map.status] ?? '').trim()).filter((x) => x && !isNoForge(x)))]; S.statusPct = {}; st.forEach((s) => (S.statusPct[s] = defaultStatusPct(s))); buildStatusMap(); }
       render();
     };
     f.append(l, sel); cm.appendChild(f);
@@ -641,7 +637,6 @@ $('unit').onchange = (e) => { S.unit = e.target.value; render(); };
 $('hpd').oninput = (e) => { S.hpd = Math.max(+e.target.value || 8, 0.5); render(); };
 $('wlpct').oninput = (e) => { if (S) { S.wlPct = Math.min(Math.max((+e.target.value || 100) / 100, 0.01), 2); render(); } };
 $('alloc').onchange = (e) => { if (S) { S.alloc = e.target.value; render(); } };
-$('wipf').oninput = (e) => { if (S) { S.wipFactor = Math.min(Math.max((+e.target.value || 75) / 100, 0.05), 2); render(); } };
 $('people').oninput = (e) => { if (S) { S.people = e.target.value === '' ? null : Math.max(+e.target.value, 0); render(); } };
 $('hpp').oninput = (e) => { if (S) { S.hpp = Math.max(+e.target.value || 8, 0.5); render(); } };
 // ---- ngày nghỉ lễ (file riêng) ----
@@ -771,10 +766,20 @@ function compute() {
   let noMs = 0, groupRows = 0;
   const ref = wipRef();
   // lượt 1: đọc dòng hợp lệ
-  const items = [], msAll = new Set();
+  const items = [], msAll = new Set(), fcSupports = [];
+  const FC_NOTE = 'Chưa có forge ticket (Functional consultant làm, không tính vào tiến độ)';
   S.rows.forEach((r) => {
     const status = String(r[m.status] ?? '').trim();
     if (!status) { groupRows++; return; } // dòng nhóm / tổng phụ trong file export
+    if (isNoForge(status)) {
+      // support ticket không có forge ticket = việc của Functional consultant: không tính vào tiến độ, chỉ hiện ở "Cần chú ý"
+      const ms = msName(m.milestone ? r[m.milestone] : '(Toàn dự án)');
+      if (!ms || (S.f.ms && ms !== S.f.ms)) return;
+      const sup = m.support ? String(r[m.support] ?? '').trim() : '';
+      const t = { ticket: '', summary: m.summary ? String(r[m.summary] ?? '') : '', milestone: ms, status, sup, assignee: '(chưa có forge ticket)', pct: 0, wl: 0, ts: 0, ev: 0, notes: [] };
+      fcSupports.push({ sup, tickets: [t], label: sup || '—', budget: num(r[m.workload]) * mult, ts: 0, ev: 0, pct: 0, done: false, notes: [FC_NOTE], fc: true });
+      return;
+    }
     const p = S.statusPct[status];
     if (p === null) return; // loại
     const ms = msName(m.milestone ? r[m.milestone] : '(Toàn dự án)') ;
@@ -805,12 +810,12 @@ function compute() {
     const isWip = isWipStatus(status);
     let pc = p ?? 0, wipRatio = null; const notes = [];
     if (isWip) {
-      // tiến độ WIP = giờ dev đã dùng / (hệ số × workload), không vượt mức trần
-      const base = S.wipFactor * wl, cap = p ?? 0.7;
+      // tiến độ WIP = giờ dev đã dùng / workload nội bộ (đã nhân % workload nội bộ), không vượt mức trần
+      const base = wl, cap = p ?? 0.7;
       if (base > 0) {
         wipRatio = dev / base; pc = Math.min(wipRatio, cap);
         notes.push(`WIP: dev ${fmtH(dev)}h / ${fmtH(base)}h = ${Math.round(wipRatio * 100)}%` + (wipRatio > cap ? `, tính tối đa ${Math.round(cap * 100)}%` : ''));
-        if (wipRatio > 1) notes.push(`Giờ dev đã vượt ${Math.round(S.wipFactor * 100)}% workload mà vẫn WIP`);
+        if (wipRatio > 1) notes.push('Giờ dev đã vượt workload mà vẫn WIP');
       } else { pc = 0; notes.push('WIP nhưng thiếu workload, tính 0%'); }
       if (wip) { const days = (ref - wip) / DAY; if (days > 5) notes.push(`Đã ở WIP ${Math.floor(days)} ngày`); }
     }
@@ -822,6 +827,7 @@ function compute() {
       assignee: m.assignee ? String(r[m.assignee] ?? '').trim() || '(chưa gán)' : '', status, pct: pc, wl, ts, ev: wl * pc, note: notes.join('; '), notes, st, en, dev, wipRatio, sup, share, byEst });
   });
   if (!m.devspent) warnings.push(m.timespend ? 'File không có cột time_spent_dev, tạm dùng time_spent cho mọi chỉ số giờ.' : 'File không có cột time_spent_dev, giờ đã dùng tính là 0.');
+  if (fcSupports.length) warnings.push(`${fcSupports.length} support ticket chưa có forge ticket (Functional consultant làm): không tính vào tiến độ, chỉ hiện trong danh sách cần chú ý.`);
   if (S.wlPct !== 1) warnings.push(`Workload nội bộ tính bằng ${Math.round(S.wlPct * 100)}% workload của support ticket (đổi trong Thiết lập).`);
   if (sharedSup) warnings.push(`${sharedSup} support ticket có nhiều Forge ticket: workload chỉ tính một lần và dùng chung giữa các ticket (phần chia để tính tiến độ: ${S.alloc === 'est' ? 'theo Dev Estimate' : 'chia đều'}, đổi trong Thiết lập).`);
   if (groupRows) warnings.push(`Bỏ qua ${groupRows} dòng không có status (dòng nhóm/tổng phụ của file export).`);
@@ -864,7 +870,7 @@ function compute() {
     T.forEach((t) => t.notes.forEach((n) => notes.push(T.length > 1 ? `${t.ticket}: ${n}` : n)));
     return { sup: g.sup, tickets: T, label: g.sup || T[0].ticket, budget, ts, ev, pct: budget ? ev / budget : 0, done, notes };
   });
-  return { tasks, msRows, proj, warnings, supports, msAll: [...msAll] };
+  return { tasks, msRows, proj, warnings, supports, fcSupports, msAll: [...msAll] };
 }
 function verdict(spi) { if (spi != null) spi = Math.round(spi * 100) / 100; return spi == null ? null : spi >= 0.95 ? 'Đúng tiến độ' : spi >= 0.85 ? 'Có rủi ro' : 'Chậm tiến độ'; }
 const vcls = (v) => (v === 'Đúng tiến độ' ? 'ok' : v === 'Có rủi ro' ? 'warn' : v === 'Chậm tiến độ' ? 'bad' : '');
@@ -969,7 +975,7 @@ function render() {
   renderStages(R.tasks);
   $('msCard').classList.toggle('hidden', false);
   renderMs(R.msRows);
-  renderAttention(V.supports);
+  renderAttention(V.attSupports);
   renderHours(V.supports);
   renderPeople(V.tasks);
   renderTable(V.tasks);
@@ -982,7 +988,9 @@ const matchView = (t) => (!S.f.stage || t.status === S.f.stage) && (!S.f.person 
 function viewOf(R) {
   const tasks = R.tasks.filter(matchView);
   const supports = R.supports.filter((s) => s.tickets.some(matchView));
-  return { tasks, supports };
+  // danh sách cần chú ý có thêm support ticket không có forge ticket (ẩn khi đang lọc theo giai đoạn / developer)
+  const attSupports = supports.concat(S.f.stage || S.f.person ? [] : R.fcSupports);
+  return { tasks, supports, attSupports };
 }
 function fillSelect(sel, allLabel, values, cur) {
   const sig = values.join('|');
@@ -1237,7 +1245,7 @@ function renderAttention(supports) {
     const c1 = el('td', 'tid'); c1.appendChild(el('div', null, s.label));
     const c2 = el('td', 'sum'), c3 = el('td');
     s.tickets.forEach((t) => {
-      const line = el('div'); if (s.sup) line.appendChild(el('span', 'tid', t.ticket + ' ')); line.appendChild(el('span', null, t.summary)); if (S.map.assignee) line.appendChild(el('span', 'muted', ' · ' + t.assignee)); c2.appendChild(line);
+      const line = el('div'); if (s.sup && t.ticket) line.appendChild(el('span', 'tid', t.ticket + ' ')); line.appendChild(el('span', null, t.summary)); if (S.map.assignee && !s.fc) line.appendChild(el('span', 'muted', ' · ' + t.assignee)); c2.appendChild(line);
       const ch = el('div'); ch.appendChild(stageChip(t)); c3.appendChild(ch);
     });
     const nt = el('td'); const box = el('div', 'notes'); s.notes.forEach((n) => box.appendChild(el('span', 'tag ' + sev(n), n))); nt.appendChild(box);
@@ -1270,7 +1278,7 @@ function renderHours(supports) {
     svgEl('rect', { x: left, y: 4, width: r.ts ? Math.max(2, sc(r.ts)) : 0, height: bh - 8, rx: 2, fill: over ? 'var(--bad)' : 'var(--orange)' }, g);
     const v = svgEl('text', { x: left + sc(Math.max(r.budget, r.ts)) + 6, y: bh / 2 + 4, class: 'v' }, g); v.textContent = fmt1(r.ts) + 'h';
     const hit = svgEl('rect', { x: 0, y: -gap / 2, width: W, height: bh + gap, fill: 'transparent' }, g);
-    hit.addEventListener('pointermove', (ev) => tip.show(ev, [r.sup ? `Support ${r.sup}` : r.label, ...r.tickets.map((t) => `${t.ticket} · ${t.status}${S.map.assignee ? ' · ' + t.assignee : ''} · ${fmtH(t.ts)}h — ${t.summary.length > 44 ? t.summary.slice(0, 42) + '…' : t.summary}`), `Budget ${fmtH(r.budget)}h · Đã dùng ${fmtH(r.ts)}h · Tiến độ ${Math.round(r.pct * 100)}%`]));
+    hit.addEventListener('pointermove', (ev) => tip.show(ev, [r.sup ? `Support ${r.sup}` : r.label, ...r.tickets.map((t) => `${tid(t)} · ${t.status}${S.map.assignee ? ' · ' + t.assignee : ''} · ${fmtH(t.ts)}h — ${t.summary.length > 44 ? t.summary.slice(0, 42) + '…' : t.summary}`), `Budget ${fmtH(r.budget)}h · Đã dùng ${fmtH(r.ts)}h · Tiến độ ${Math.round(r.pct * 100)}%`]));
     hit.addEventListener('pointerleave', () => tip.hide());
   });
 }
@@ -1309,7 +1317,7 @@ function renderTable(tasks) {
     const st = el('td'); st.appendChild(stageChip(t));
     const pc = el('td', 'n'); pc.appendChild(miniBar(t.pct, stageVar(t.status)));
     const over = t.pct < 1 && t.wl > 0 && t.ts > t.wl;
-    tr.append(td(t.ticket, 'tid'), td(t.sup || '—', 'supc' + (S.map.support ? '' : ' hidden')), td(t.summary, 'sum'), td(t.milestone, 'msc' + (multiMs ? '' : ' hidden')), td(t.assignee, 'asg' + (S.map.assignee ? '' : ' hidden')), st, pc, td(fmtH(t.wl), 'n'), td(fmtH(t.ts), 'n' + (over ? ' bad-t' : '')), td(fmtH(t.ev), 'n'));
+    tr.append(td(tid(t), 'tid'), td(t.sup || '—', 'supc' + (S.map.support ? '' : ' hidden')), td(t.summary, 'sum'), td(t.milestone, 'msc' + (multiMs ? '' : ' hidden')), td(t.assignee, 'asg' + (S.map.assignee ? '' : ' hidden')), st, pc, td(fmtH(t.wl), 'n'), td(fmtH(t.ts), 'n' + (over ? ' bad-t' : '')), td(fmtH(t.ev), 'n'));
     tb.appendChild(tr);
   });
   if (!rows.length) { const tr = el('tr'); const c = td('Không có ticket khớp bộ lọc hoặc từ khóa.', 'muted'); c.colSpan = 10; tr.appendChild(c); tb.appendChild(tr); }
@@ -1338,8 +1346,8 @@ $('copy').addEventListener('click', async () => {
   L.push(`Closed ${p.closed}/${p.n} ticket · chưa bắt đầu ${pct(p.notStarted)} workload`);
   if (p.rem > 0) L.push(`Workload còn lại ${fmt1(p.rem)}h → theo CPI còn cần ~${fmt1(p.needCpi)}h trong ${p.daysLeft ?? '—'} ${dayWord()}` + (S.people != null && p.daysLeft ? ` · năng lực team ${fmt1(S.people * S.hpp * p.daysLeft)}h` : ''));
   if (last.msRows.length > 1) { L.push(''); last.msRows.forEach((r) => L.push(`- ${r.name}: ${pct(r.actual)} / KH ${pct(r.planned)} · SPI ${fmt2(r.spi)} · ${r.verdict || '—'}`)); }
-  const att = last.supports.filter((s) => s.notes.some((n) => sev(n) !== 'info'));
-  if (att.length) { L.push(''); L.push('Cần chú ý (theo support ticket):'); att.slice(0, 10).forEach((s) => L.push(`- ${s.label} [${s.tickets.map((t) => t.ticket + ' ' + t.status + (S.map.assignee ? ' (' + t.assignee + ')' : '')).join(', ')}] budget ${fmtH(s.budget)}h, đã dùng ${fmtH(s.ts)}h: ${s.notes.filter((n) => sev(n) !== 'info').join('; ')}`)); }
+  const att = last.supports.concat(last.fcSupports).filter((s) => s.notes.some((n) => sev(n) !== 'info'));
+  if (att.length) { L.push(''); L.push('Cần chú ý (theo support ticket):'); att.slice(0, 10).forEach((s) => L.push(`- ${s.label} [${s.tickets.map((t) => tid(t) + ' ' + t.status + (S.map.assignee ? ' (' + t.assignee + ')' : '')).join(', ')}] budget ${fmtH(s.budget)}h, đã dùng ${fmtH(s.ts)}h: ${s.notes.filter((n) => sev(n) !== 'info').join('; ')}`)); }
   try { await navigator.clipboard.writeText(L.join('\n')); $('toast').textContent = 'Đã copy'; } catch { $('toast').textContent = 'Trình duyệt chặn copy'; }
   setTimeout(() => ($('toast').textContent = ''), 2000);
 });

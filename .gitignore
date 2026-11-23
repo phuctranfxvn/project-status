@@ -1,0 +1,4 @@
+connection.conf
+.DS_Store
+*.xlsx
+!holiday.xlsx
